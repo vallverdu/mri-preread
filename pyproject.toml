@@ -1,0 +1,44 @@
+[build-system]
+# SPDX license expressions and license-files require modern setuptools.
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mri-preread"
+version = "0.1.0"
+description = "Brain MRI 3D viewer (single HTML file, WebGL2), heterogeneity maps and an MCP server for an LLM pre-read. Not a medical device."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jordi Vallverdu" }]
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "pydicom",
+  "nibabel",
+  "pillow",
+  "scipy",
+  "scikit-learn",
+  "SimpleITK",
+  "mcp>=1.20,<2",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+  "Intended Audience :: Science/Research",
+]
+
+[project.optional-dependencies]
+# decoders for compressed DICOM (JPEG, JPEG-LS, JPEG 2000)
+dicom-compressed = ["pylibjpeg", "pylibjpeg-libjpeg", "pylibjpeg-openjpeg"]
+# Apple Silicon GPU inference; optional so the viewer/MCP remain lightweight.
+medgemma = ["mlx-vlm==0.4.4; sys_platform == 'darwin' and platform_machine == 'arm64'"]
+
+[project.scripts]
+mri-preread = "mri_preread.cli:main"
+
+[tool.setuptools]
+packages = ["mri_preread"]
+
+[tool.setuptools.package-data]
+mri_preread = ["viewer_template.html", "worklist_template.html", "annotation_core.js", "clinician_viewer.js"]

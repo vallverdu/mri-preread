@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brain MRI 3D Viewer</title>
+<style>
+  :root {
+    --bg: #0b0d10; --panel: #13161b; --panel2: #1a1e25; --line: #262b34;
+    --text: #e6e8eb; --muted: #8b93a1; --accent: #5aa9ff;
+    --ax: #ffb347; --co: #6ee7a8; --sa: #ff6b8b;
+    --high: #ff5c5c; --med: #ffb020; --low: #6aa7ff; --ok: #7d8696;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  #app { display: grid; grid-template-columns: min(var(--sidew, 300px), 45vw) 8px minmax(0, 1fr); height: 100vh; }
+  #app.noside { grid-template-columns: minmax(0, 1fr); }
+  #app.noside aside, #app.noside #sideSplit { display: none; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; min-width: 0; padding: 14px 12px 24px; scrollbar-width: thin; scrollbar-color: #526d8c var(--panel); scrollbar-gutter: stable; }
+  aside::-webkit-scrollbar { width: 8px; }
+  aside::-webkit-scrollbar-track { background: var(--panel); }
+  aside::-webkit-scrollbar-thumb { background: #526d8c; border: 2px solid var(--panel); border-radius: 8px; }
+  aside::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  #sideSplit { cursor: col-resize; touch-action: none; background: var(--bg); position: relative; }
+  #sideSplit::after { content: ''; position: absolute; width: 3px; height: 38px; top: 50%; left: 2px; border-radius: 3px; background: #526d8c; }
+  #sideSplit:hover::after, #sideSplit.drag::after { background: var(--accent); }
+  .control-group { border-top: 1px solid var(--line); padding: 6px 0; }
+  .control-group > summary { cursor: pointer; padding: 8px 2px; font-weight: 600; color: #c7d5e6; list-style: none; display: flex; gap: 8px; align-items: center; }
+  .control-group > summary::before { content: '›'; font-size: 17px; color: var(--accent); }
+  .control-group[open] > summary::before { transform: rotate(90deg); }
+  .control-group > summary::-webkit-details-marker { display: none; }
+  .control-body { padding: 2px 2px 8px; }
+  .live { margin-left: auto; font-size: 10px; color: var(--co); display: none; }
+  .pane-grip { position: absolute; top: 3px; left: 5px; z-index: 3; color: inherit; background: #13161be6; border: 1px solid var(--line); border-radius: 5px; padding: 3px 7px; font: inherit; font-size: 11px; cursor: grab; touch-action: none; }
+  .pane-grip:focus-visible { outline: 2px solid var(--accent); }
+  .view.drop-target { box-shadow: inset 0 0 0 3px var(--accent); }
+  .view.reordering { opacity: .6; }
+  .gemma-row { text-align: left; color: var(--text); font: inherit; width: 100%; }
+  .gemma-images { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; }
+  .gemma-images figure { margin: 0; flex: 0 0 140px; }
+  .gemma-images img { width: 100%; display: block; border-radius: 4px; }
+  .gemma-images button { padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+  #gemmaImageDialog { max-width: 94vw; max-height: 94vh; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; }
+  #gemmaImageDialog::backdrop { background: #000b; }
+  #gemmaImageDialog img { display: block; max-width: 85vw; max-height: 76vh; margin: 10px auto; }
+  .gemma-images figcaption { font-size: 10px; color: var(--muted); }
+  #gemmaDetail { overflow-wrap: anywhere; }
+  #gemmaDetail pre { white-space: pre-wrap; font-size: 11px; }
+  #gemmaList { max-height: 280px; overflow-y: auto; scrollbar-width: thin; }
+  h1 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  section { border-top: 1px solid var(--line); padding: 12px 0 6px; }
+  section h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  section h2 .live { margin-left: auto; font-size: 10px; letter-spacing: 0; text-transform: none; color: var(--co); display: none; }
+  label.row { display: grid; grid-template-columns: 78px 1fr 36px; align-items: center; gap: 8px; margin: 6px 0; color: var(--muted); }
+  label.row output { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; font-size: 12px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .seg { display: flex; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; margin-bottom: 4px; }
+  .seg button { flex: 1; background: none; border: 0; color: var(--muted); padding: 6px 4px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
+  .seg button.on { background: var(--accent); color: #06121f; font-weight: 600; }
+  .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .btns button { background: var(--panel2); border: 1px solid var(--line); color: var(--text); padding: 5px 10px; border-radius: 6px; cursor: pointer; font: inherit; }
+  .btns button:hover { border-color: var(--accent); }
+  .chk { display: flex; align-items: center; gap: 8px; margin: 6px 0; color: var(--muted); cursor: pointer; }
+  select { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; font: inherit; width: 100%; }
+  #clinControls { border: 0; padding: 0; margin: 0; min-width: 0; }
+  #clinEditor label { display: block; margin: 8px 0; color: var(--muted); }
+  #clinEditor input, #clinEditor textarea { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; padding: 7px; color: var(--text); font: inherit; }
+  #clinEditor textarea { min-height: 90px; resize: vertical; }
+  #clinList { max-height: 240px; overflow-y: auto; }
+  #clinStatus { overflow-wrap: anywhere; }
+  .only { display: none; } .only.show { display: block; }
+  .note { color: var(--muted); font-size: 11.5px; margin: 6px 0; }
+  .warn { border: 1px solid #4a3a1a; background: #1f1a10; color: #e9cf95; border-radius: 6px; padding: 7px 9px; font-size: 11.5px; margin: 6px 0 8px; }
+  .list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .item { background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid var(--ok); border-radius: 6px; padding: 7px 8px; cursor: pointer; }
+  .item:hover { border-color: var(--accent); }
+  .item.active { border-color: var(--accent); background: #1c2633; }
+  .item .t { display: flex; gap: 6px; align-items: baseline; font-weight: 500; }
+  .item .t .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .item .t .x { margin-left: auto; color: var(--muted); background: none; border: 0; cursor: pointer; font: inherit; padding: 0 2px; }
+  .item .t .x:hover { color: var(--high); }
+  .item .d { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .item .m { color: var(--muted); font-size: 11px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .item.high { border-left-color: var(--high); } .item.medium, .item.review { border-left-color: var(--med); }
+  .item.low, .item.normal-likely { border-left-color: var(--low); } .item.artifact, .item.edge { border-left-color: var(--ok); }
+  .pill { display: inline-block; font-size: 10px; padding: 0 6px; border-radius: 9px; border: 1px solid var(--line); color: var(--muted); margin-right: 3px; }
+  table.st { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11px; font-variant-numeric: tabular-nums; }
+  table.st td { padding: 1px 2px; color: var(--muted); } table.st td:nth-child(2) { color: var(--text); text-align: right; }
+  #summary { font-size: 12px; color: var(--text); white-space: pre-wrap; margin: 4px 0; }
+  /* ---- work area: toolbar + panes (3D, axial, coronal, sagittal) in switchable layouts ---- */
+  #work { display: grid; grid-template-rows: 36px minmax(0, 1fr); min-width: 0; min-height: 0; }
+  #bar { display: flex; align-items: center; gap: 8px; padding: 0 8px; background: var(--panel); border-bottom: 1px solid var(--line); min-width: 0; overflow: hidden; }
+  #bar .seg { margin: 0; flex: none; }
+  #bar .seg button { flex: none; padding: 4px 10px; white-space: nowrap; }
+  #bar .ib { background: var(--panel2); border: 1px solid var(--line); color: var(--text); border-radius: 6px; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; flex: none; }
+  #bar .ib:hover { border-color: var(--accent); } #bar .ib.on { background: var(--accent); color: #06121f; border-color: var(--accent); }
+  #bar .keys { margin-left: auto; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  #bar kbd { font: inherit; font-size: 10.5px; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; color: var(--text); }
+  #stage { position: relative; display: grid; gap: 1px; background: var(--line); min-width: 0; min-height: 0; --mprw: 30vw; }
+  #stage.L-std  { grid-template-columns: minmax(0, 1fr) min(var(--mprw), 75%); grid-template-rows: repeat(3, minmax(0, 1fr)); grid-template-areas: "d3 ax" "d3 co" "d3 sa"; }
+  #stage.L-quad { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); grid-template-areas: "d3 ax" "co sa"; }
+  #stage.L-row  { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); grid-template-areas: "ax co sa"; }
+  #stage.L-row #main { display: none; }
+  #stage.L-max  { grid-template: "m" minmax(0, 1fr) / minmax(0, 1fr); }
+  #stage.L-max .pane:not(.maxed) { display: none; }
+  #stage.L-max .pane.maxed { grid-area: m; }
+  #main { grid-area: d3; } .view[data-pane="ax"] { grid-area: ax; } .view[data-pane="co"] { grid-area: co; } .view[data-pane="sa"] { grid-area: sa; }
+  #split { position: absolute; top: 0; bottom: 0; right: min(var(--mprw), 75%); width: 9px; margin-right: -5px; cursor: col-resize; z-index: 4; display: none; touch-action: none; }
+  #split::after { content: ""; position: absolute; top: 50%; left: 3px; width: 3px; height: 38px; margin-top: -19px; border-radius: 2px; background: var(--muted); opacity: .35; }
+  #split:hover::after, #split.drag::after { opacity: 1; background: var(--accent); }
+  #stage.L-std #split { display: block; }
+  .pctl { position: absolute; top: 5px; right: 6px; z-index: 3; }
+  .pctl button { background: rgba(19, 22, 27, .75); border: 1px solid var(--line); color: var(--muted); border-radius: 6px; width: 26px; height: 24px; cursor: pointer; padding: 0; display: grid; place-items: center; }
+  .pctl button:hover { color: var(--text); border-color: var(--accent); }
+  #main { position: relative; min-width: 0; min-height: 0; background: var(--bg); }
+  #gl, #ovl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #gl { cursor: grab; touch-action: none; } #gl.pick { cursor: crosshair; }
+  #ovl { pointer-events: none; }
+  #hud { position: absolute; left: 12px; bottom: 10px; color: var(--muted); font-size: 12px; pointer-events: none; }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  .view { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #000; }
+  .view canvas { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+  .view .tag { position: absolute; top: 6px; left: 8px; font-size: 11px; font-weight: 600; letter-spacing: .05em; pointer-events: none; }
+  .view .num { position: absolute; top: 9px; right: 40px; font-size: 11px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+  #info { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #info b { color: var(--text); font-weight: 500; }
+  @media (max-width: 900px) {
+    #app, #app.noside { grid-template-columns: minmax(0, 1fr); height: auto; }
+    aside { border-right: 0; order: 3; max-height: 60vh; }
+    #sideSplit { display: none; }
+    #work { order: 1; }
+    #bar .keys { display: none; }
+    #stage.L-std  { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 60vh 33vw; grid-template-areas: "d3 d3 d3" "ax co sa"; }
+    #stage.L-quad { grid-template-rows: 50vw 50vw; }
+    #stage.L-row  { grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(3, 90vw); grid-template-areas: "ax" "co" "sa"; }
+    #stage.L-max  { grid-template-rows: 85vh; }
+    #stage.L-std #split { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <h1>Brain MRI · 3D</h1>
+    <div class="sub" id="series"></div>
+
+    <details class="control-group" data-group="1" open><summary>Display</summary><div class="control-body">
+      <label class="row">Sequence <select id="seq"></select><span></span></label>
+      <div class="seg" id="mode">
+        <button data-m="0" class="on">Surface</button><button data-m="1">Volume</button><button data-m="2">MIP</button>
+      </div>
+      <div class="only show" data-for="0">
+        <label class="row">Threshold <input type="range" id="iso" min="0.02" max="0.9" step="0.005" value="0.14"><output></output></label>
+        <label class="row">Surface <select id="surf"><option value="0">Skin</option><option value="1">Bone white</option><option value="2">Clay</option></select><span></span></label>
+      </div>
+      <div class="only" data-for="1">
+        <label class="row">Low <input type="range" id="lo" min="0" max="1" step="0.005" value="0.22"><output></output></label>
+        <label class="row">High <input type="range" id="hi" min="0" max="1" step="0.005" value="0.75"><output></output></label>
+        <label class="row">Opacity <input type="range" id="op" min="0.01" max="1" step="0.01" value="0.35"><output></output></label>
+        <label class="row">Colors <select id="cmap"><option value="1">Warm</option><option value="0">Gray</option><option value="2">Ice</option></select><span></span></label>
+      </div>
+      <div class="only" data-for="2">
+        <label class="row">Low <input type="range" id="mlo" min="0" max="1" step="0.005" value="0.05"><output></output></label>
+        <label class="row">High <input type="range" id="mhi" min="0" max="1" step="0.005" value="0.9"><output></output></label>
+      </div>
+      <label class="chk"><input type="checkbox" id="brain"> Brain only (remove skull &amp; scalp)</label>
+    </div></details>
+
+    <details class="control-group" data-group="clinician" open><summary>Clinician annotations</summary><div class="control-body">
+      <p class="note">Your notes and painted masks. Orange: selected annotation; cyan: other clinician annotations. D markers identify your notes.</p>
+      <fieldset id="clinControls" disabled>
+        <div class="btns"><button id="clinNew" type="button">New annotation</button><button id="clinUndo" type="button" disabled>Undo</button><button id="clinRedo" type="button" disabled>Redo</button></div>
+        <label class="chk"><input id="clinShow" type="checkbox" checked> Show clinician notes and masks</label>
+        <div class="list" id="clinList"></div>
+        <div id="clinEditor" hidden>
+          <label>Title<input id="clinTitle" type="text" maxlength="200" autocomplete="off"></label>
+          <label>Clinical note<textarea id="clinNote" maxlength="10000" placeholder="Describe your observation and follow-up…"></textarea></label>
+          <label>Author (optional)<input id="clinAuthor" type="text" maxlength="200" autocomplete="off"></label>
+          <div class="btns"><button id="clinSave" type="button">Save note</button></div>
+          <p class="note">Text saves when you leave a field or click Save note.</p>
+          <p class="note" id="clinPosition"></p>
+          <div class="seg" id="clinTools"><button type="button" data-ct="clin-point">Place point</button><button type="button" data-ct="clin-paint">Paint mask</button><button type="button" data-ct="clin-erase">Erase mask</button></div>
+          <label class="row">Brush radius<input id="clinBrush" type="range" min="0.5" max="15" step="0.5" value="3"><output id="clinBrushValue">3 mm</output></label>
+          <div class="note">2D painting affects one reference slice. In 3D, a spherical brush paints around the visible surface or cut face and can include deeper voxels. Check the result in all three slices. Masks are shown through anatomy in 3D and follow the cut limits.</div>
+          <div class="btns"><button id="clinAtCross" type="button">Move point to crosshair</button><button id="clinDelete" type="button">Delete annotation</button></div>
+        </div>
+        <div class="btns" style="margin-top:10px"><button id="clinExport" type="button">Export notes + masks (JSON)</button></div>
+        <label class="chk">Import JSON<input id="clinImport" type="file" accept=".json,application/json" style="min-width:0;width:100%"></label>
+      </fieldset>
+      <p class="note" id="clinStatus" role="status" aria-live="polite">Opening local annotation workspace…</p>
+    </div></details>
+
+    <details class="control-group" data-group="2"><summary>MCP annotations <span class="live" id="live">● live</span></summary><div class="control-body">
+      <div class="warn">Points an AI assistant suggests a doctor looks at. It is not a diagnosis and can miss things or flag normal anatomy.</div>
+      <div id="summary"></div>
+      <label class="chk"><input type="checkbox" id="marks" checked> Show numbered markers</label>
+      <div class="list" id="annots"></div>
+      <div class="note" id="annEmpty">No MCP annotations yet. MedGemma sampled-plane reviews appear in their own group below.</div>
+    </div></details>
+
+    <details class="control-group" data-group="medgemma" open><summary>MedGemma review <span id="gemmaCount" class="pill"></span></summary><div class="control-body">
+      <div class="warn">Unverified sampled-plane flags, not localized lesions. The current setup flagged every plane in the pilot; no clinical urgency is assigned.</div>
+      <div id="gemmaStatus" class="note"></div>
+      <label class="chk"><input id="gemmaPlanes" type="checkbox" checked> Show selected review plane</label>
+      <label class="row">Show <select id="gemmaFilter"><option value="flagged">Flagged / uncertain</option><option value="all">All reviewed planes</option></select><span></span></label>
+      <div id="gemmaList" class="list"></div><div id="gemmaDetail"></div>
+    </div></details>
+
+    <details class="control-group" data-group="3"><summary>Heterogeneity maps</summary><div class="control-body">
+      <div class="seg" id="ovmap">
+        <button data-o="off" class="on">Off</button><button data-o="outlier">Outliers</button><button data-o="asym">Asymmetry</button><button data-o="gt" id="gtBtn" style="display:none" title="Reference segmentation that came with the dataset">Lesion mask</button>
+      </div>
+      <div class="note" id="ovdesc">Color maps of voxels that are statistically unusual for this scan.</div>
+      <label class="row">Threshold <input type="range" id="ovThr" min="1" max="12" step="0.1" value="5"><output></output></label>
+      <label class="row">Opacity <input type="range" id="ovOp" min="0.1" max="1" step="0.05" value="0.75"><output></output></label>
+      <label class="chk"><input type="checkbox" id="xray" checked> See hotspots through the surface</label>
+      <label class="chk"><input type="checkbox" id="hideArt" checked> Hide likely artifacts &amp; normal anatomy</label>
+      <div class="list" id="finds"></div>
+    </div></details>
+
+    <details class="control-group" data-group="4"><summary>Measure</summary><div class="control-body">
+      <div class="seg" id="tool">
+        <button data-t="nav" class="on">Navigate</button><button data-t="ruler">Ruler</button><button data-t="roi">ROI</button>
+      </div>
+      <div class="note" id="toolHint">Click or drag in a slice to move the crosshair.</div>
+      <div class="list" id="meas"></div>
+      <div class="btns" style="margin-top:6px"><button id="measCsv">Export CSV</button><button id="measClear">Clear all</button></div>
+    </div></details>
+
+    <details class="control-group" data-group="5"><summary>Cut</summary><div class="control-body">
+      <label class="chk"><input type="checkbox" id="followCut" checked> Cut follows slice navigation</label>
+      <label class="row">Keep <select id="cutSide"><option value="before">Before plane</option><option value="after">After plane</option></select><span></span></label>
+      <div class="note" id="cutStatus">Whole volume. Click or scroll a 2D slice to cut at its plane. Sliders define a manual box cut.</div>
+      <label class="row">R ← L min <input type="range" class="clip" data-a="0" data-e="0" min="0" max="1" step="0.005" value="0"><output></output></label>
+      <label class="row">max <input type="range" class="clip" data-a="0" data-e="1" min="0" max="1" step="0.005" value="1"><output></output></label>
+      <label class="row">Post → Ant <input type="range" class="clip" data-a="1" data-e="0" min="0" max="1" step="0.005" value="0"><output></output></label>
+      <label class="row">max <input type="range" class="clip" data-a="1" data-e="1" min="0" max="1" step="0.005" value="1"><output></output></label>
+      <label class="row">Inf → Sup <input type="range" class="clip" data-a="2" data-e="0" min="0" max="1" step="0.005" value="0"><output></output></label>
+      <label class="row">max <input type="range" class="clip" data-a="2" data-e="1" min="0" max="1" step="0.005" value="1"><output></output></label>
+      <div class="btns" style="margin-top:6px"><button id="clipReset">Reset cut</button><button id="halfL">Midline cut</button></div>
+    </div></details>
+
+    <details class="control-group" data-group="6"><summary>Slices (2D)</summary><div class="control-body">
+      <label class="row">Level <input type="range" id="lev" min="0" max="1" step="0.005" value="0.35"><output></output></label>
+      <label class="row">Width <input type="range" id="wid" min="0.02" max="1" step="0.005" value="0.7"><output></output></label>
+      <div class="note">Scroll in a slice to step through it.</div>
+    </div></details>
+
+    <details class="control-group" data-group="7"><summary>View</summary><div class="control-body">
+      <div class="btns">
+        <button data-v="front">Front</button><button data-v="left">Left</button><button data-v="right">Right</button>
+        <button data-v="top">Top</button><button data-v="back">Back</button><button data-v="iso">3/4</button>
+      </div>
+      <label class="chk" style="margin-top:8px"><input type="checkbox" id="spin"> Auto-rotate</label>
+      <div class="btns" style="margin-top:6px"><button id="snap">Save 3D snapshot (PNG)</button></div>
+      <div class="note">Drag to rotate · right-drag or shift-drag to pan · scroll to zoom.</div>
+    </div></details>
+
+    <details class="control-group" data-group="8"><summary>Crosshair</summary><div class="control-body">
+      <div id="info"></div>
+    </div></details>
+
+  </aside>
+  <div id="sideSplit" role="separator" aria-label="Resize control panel" aria-orientation="vertical" tabindex="0" title="Drag to resize controls · double-click to reset"></div>
+
+  <div id="work">
+    <div id="bar">
+      <button class="ib on" id="sideBtn" title="Show / hide the control panel (P)">☰ Panel</button>
+      <div class="seg" id="layout">
+        <button data-l="std" class="on" title="3D with the slices on the right; drag the divider to resize">3D + slices</button><button data-l="quad" title="Four equal panes">Four-up</button><button data-l="row" title="Slices only, side by side">Slices</button>
+      </div>
+      <span class="keys"><kbd>1</kbd>–<kbd>4</kbd> or double-click: maximize a pane · <kbd>Esc</kbd> restore · <kbd>F</kbd> full screen</span>
+      <button class="ib" id="fsBtn" title="Full screen (F)">⛶ Full screen</button>
+    </div>
+    <div id="stage" class="L-std">
+      <div id="main" class="pane" data-pane="d3">
+        <canvas id="gl"></canvas><canvas id="ovl"></canvas>
+        <div id="loading">Decompressing volumes…</div>
+        <div id="hud"></div>
+        <div class="pctl"><button title="Maximize (1)"></button></div>
+      </div>
+      <div class="view pane" data-pane="ax"><canvas data-p="2"></canvas><button class="pane-grip" style="color:var(--ax)" title="Drag to reorder · arrow keys move this view">⠿ AXIAL</button><span class="num"></span><div class="pctl"><button title="Maximize (2)"></button></div></div>
+      <div class="view pane" data-pane="co"><canvas data-p="1"></canvas><button class="pane-grip" style="color:var(--co)" title="Drag to reorder · arrow keys move this view">⠿ CORONAL</button><span class="num"></span><div class="pctl"><button title="Maximize (3)"></button></div></div>
+      <div class="view pane" data-pane="sa"><canvas data-p="0"></canvas><button class="pane-grip" style="color:var(--sa)" title="Drag to reorder · arrow keys move this view">⠿ SAGITTAL</button><span class="num"></span><div class="pctl"><button title="Maximize (4)"></button></div></div>
+      <div id="split" title="Drag to resize the slice column · double-click to reset"></div>
+    </div>
+  </div>
+</div>
+
+<dialog id="gemmaImageDialog" aria-label="Exact MedGemma input image"><div class="btns"><button id="gemmaImageClose">Close image</button></div><p id="gemmaImageCaption"></p><img id="gemmaImageFull" alt=""></dialog>
+<script id="meta" type="application/json">__META__</script>
+<script id="medgemma" type="application/json">__MEDGEMMA__</script>
+<script id="annotations" type="application/json">__ANNOTATIONS__</script>
+<!--__DATA__-->
+<script>__ANNOTATION_CORE__</script>
+<script>
+"use strict";
+const META = JSON.parse(document.getElementById('meta').textContent);
+const G1 = META.dims1, G2 = META.dims2, SP1 = META.sp1;
+const [W, H, D] = G1;                       // i: → patient Right, j: → Anterior, k: → Superior
+const phys = G1.map((n, a) => n * SP1[a]);
+const maxP = Math.max(...phys);
+const HALF = phys.map(p => p / maxP * 0.5);
+const VOLS = {}; META.vols.forEach(v => VOLS[v.key] = v);
+const REFK = META.ref || 't1';                // reference sequence: defines the grid and the 3D surface
+const AUX = {};                             // mask, outlier, asym (+ gt when the dataset has a reference mask), G2 grid
+const AUX_KEYS = ['mask', 'outlier', 'asym', ...(META.gt ? ['gt'] : [])];
+const OVDESC = {
+  off: 'Color maps of voxels that are statistically unusual for this scan.',
+  outlier: 'Outliers: voxels whose combination of T1/T2/FLAIR/SWI/DWI/ADC fits none of this brain’s normal tissue types. Score in robust σ.',
+  asym: 'Asymmetry: regions that differ from the mirrored hemisphere. Differences show on both sides of a pair.',
+  gt: 'Lesion mask: the reference segmentation supplied with the dataset (for evaluation). It is not produced by this tool, and the AI pre-read never saw it.',
+};
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+document.getElementById('series').textContent = `${W}×${H}×${D} voxels · ${SP1.map(s => s.toFixed(2)).join('×')} mm`;
+
+// ---------- state ----------
+const S = {
+  seq: REFK, mode: 0, iso: 0.14, surf: 0, lo: 0.22, hi: 0.75, op: 0.35, cmap: 1, mlo: 0.05, mhi: 0.9, brain: false,
+  clipMin: [0, 0, 0], clipMax: [1, 1, 1], oct: false, followCut: true, cutAxis: null, gemma: null, gemmaPlane: null,
+  win: Object.fromEntries(META.vols.map(v => [v.key, [v.lev, v.wid]])),
+  cross: [Math.floor(W / 2), Math.floor(H / 2), Math.floor(D / 2)],
+  yaw: 0, pitch: 0, dist: 2.3, target: [0, 0, 0], spin: false,
+  ovMap: 'off', ovThr: 5, ovOp: 0.75, xray: true, hideArt: true,
+  tool: 'nav', meas: [], pend3: null, marks: true,
+  ann: { summary: null, items: [] }, activeKey: null,
+};
+
+__CLINICIAN_VIEWER__
+
+// ---------- math ----------
+const M = {
+  persp(f, a, n, fa) { const t = 1 / Math.tan(f / 2); return [t / a,0,0,0, 0,t,0,0, 0,0,(fa+n)/(n-fa),-1, 0,0,2*fa*n/(n-fa),0]; },
+  look(e, c, u) {
+    const z = norm(sub(e, c)), x = norm(cross(u, z)), y = cross(z, x);
+    return [x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0, -dot(x,e),-dot(y,e),-dot(z,e),1];
+  },
+  mul(a, b) { const r = new Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k*4+j] * b[i*4+k]; r[i*4+j] = s; } return r; },
+  inv(m) {
+    const [a00,a01,a02,a03,a10,a11,a12,a13,a20,a21,a22,a23,a30,a31,a32,a33] = m;
+    const b00=a00*a11-a01*a10,b01=a00*a12-a02*a10,b02=a00*a13-a03*a10,b03=a01*a12-a02*a11,b04=a01*a13-a03*a11,b05=a02*a13-a03*a12,
+          b06=a20*a31-a21*a30,b07=a20*a32-a22*a30,b08=a20*a33-a23*a30,b09=a21*a32-a22*a31,b10=a21*a33-a23*a31,b11=a22*a33-a23*a32;
+    const d = 1 / (b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06);
+    return [(a11*b11-a12*b10+a13*b09)*d,(a02*b10-a01*b11-a03*b09)*d,(a31*b05-a32*b04+a33*b03)*d,(a22*b04-a21*b05-a23*b03)*d,
+            (a12*b08-a10*b11-a13*b07)*d,(a00*b11-a02*b08+a03*b07)*d,(a32*b02-a30*b05-a33*b01)*d,(a20*b05-a22*b02+a23*b01)*d,
+            (a10*b10-a11*b08+a13*b06)*d,(a01*b08-a00*b10-a03*b06)*d,(a30*b04-a31*b02+a33*b00)*d,(a21*b02-a20*b04-a23*b00)*d,
+            (a11*b07-a10*b09-a12*b06)*d,(a00*b09-a01*b07+a02*b06)*d,(a31*b01-a30*b03-a32*b00)*d,(a20*b03-a21*b01+a22*b00)*d];
+  },
+  xf(m, v) { return [0, 1, 2, 3].map(r => m[r]*v[0] + m[4+r]*v[1] + m[8+r]*v[2] + m[12+r]*v[3]); },
+};
+function sub(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+function cross(a, b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function norm(a) { const l = Math.hypot(...a) || 1; return a.map(v => v / l); }
+const toWorld = c => c.map((x, a) => ((x + 0.5) / G1[a] - 0.5) * 2 * HALF[a]);     // G1 voxel → world
+const toVox = w => w.map((x, a) => (x / (2 * HALF[a]) + 0.5) * G1[a] - 0.5);
+const distMM = (a, b) => Math.hypot(...a.map((x, i) => (x - b[i]) * SP1[i]));
+const mmOf = c => c.map((x, a) => (x - G1[a] / 2) * SP1[a]);
+
+// trilinear sample of a uint8 volume at G1 voxel coords (handles G2 volumes via f)
+function tri(v, c) {
+  const f = v.f || 2, [nx, ny, nz] = v.dims, d = v.data;
+  const x = clamp((c[0] + 0.5) / f - 0.5, 0, nx - 1), y = clamp((c[1] + 0.5) / f - 0.5, 0, ny - 1), z = clamp((c[2] + 0.5) / f - 0.5, 0, nz - 1);
+  const x0 = Math.floor(x), y0 = Math.floor(y), z0 = Math.floor(z);
+  const x1 = Math.min(x0 + 1, nx - 1), y1 = Math.min(y0 + 1, ny - 1), z1 = Math.min(z0 + 1, nz - 1);
+  const fx = x - x0, fy = y - y0, fz = z - z0, sy = nx, sz = nx * ny;
+  const L = (a, b, t) => a + (b - a) * t;
+  return L(L(L(d[x0+y0*sy+z0*sz], d[x1+y0*sy+z0*sz], fx), L(d[x0+y1*sy+z0*sz], d[x1+y1*sy+z0*sz], fx), fy),
+           L(L(d[x0+y0*sy+z1*sz], d[x1+y0*sy+z1*sz], fx), L(d[x0+y1*sy+z1*sz], d[x1+y1*sy+z1*sz], fx), fy), fz) / 255;
+}
+function sampBase(c) { let s = tri(S.mode === 0 ? VOLS[REFK] : VOLS[S.seq], c); if (S.brain) s *= clamp((tri(AUX.mask, c) - 0.3) / 0.4, 0, 1); return s; }
+
+// ---------- WebGL ----------
+const cv = document.getElementById('gl'), ovl = document.getElementById('ovl'), octx = ovl.getContext('2d');
+const gl = cv.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
+if (!gl) document.getElementById('loading').textContent = 'WebGL2 is not available in this browser.';
+
+const VS = `#version 300 es
+in vec2 p; out vec2 vNdc; void main(){ vNdc = p; gl_Position = vec4(p, 0., 1.); }`;
+const FS = `#version 300 es
+precision highp float; precision highp sampler3D;
+uniform sampler3D uVol, uMask, uOv, uSeq, uClin;
+uniform bool uClinOn; uniform vec3 uClinVox;
+vec4 clinLayer = vec4(0.0);
+vec3 withClin(vec3 color) { return mix(color, clinLayer.rgb, clinLayer.a); }
+uniform mat4 uInvVP; uniform vec3 uCam, uHalf, uVox, uVox2;
+uniform vec3 uCMin, uCMax; uniform int uMode; uniform float uIso, uLo, uHi, uOp, uMLo, uMHi, uLev, uWid;
+uniform int uCmap, uSurf; uniform bool uOctOn, uBrain, uOvOn, uXray; uniform vec3 uCross, uOct;
+uniform float uOvThr, uOvOp;
+in vec2 vNdc; out vec4 frag;
+
+vec3 tc(vec3 w){ return w / (2.0*uHalf) + 0.5; }
+float samp(vec3 w){ vec3 t = tc(w); float s = texture(uVol, t).r; if (uBrain) s *= smoothstep(0.3, 0.7, texture(uMask, t).r); return s; }
+float sampO(vec3 w){ return texture(uOv, tc(w)).r; }
+float sampS(vec3 w){ return texture(uSeq, tc(w)).r; }   // selected sequence (cut faces)
+vec3 grad(vec3 w){
+  vec3 e = uVox * 2.0 * uHalf;
+  return vec3(samp(w+vec3(e.x,0,0))-samp(w-vec3(e.x,0,0)), samp(w+vec3(0,e.y,0))-samp(w-vec3(0,e.y,0)), samp(w+vec3(0,0,e.z))-samp(w-vec3(0,0,e.z))) / e;
+}
+vec3 gradO(vec3 w){
+  vec3 e = uVox2 * 2.0 * uHalf;
+  return vec3(sampO(w+vec3(e.x,0,0))-sampO(w-vec3(e.x,0,0)), sampO(w+vec3(0,e.y,0))-sampO(w-vec3(0,e.y,0)), sampO(w+vec3(0,0,e.z))-sampO(w-vec3(0,0,e.z))) / e;
+}
+bool inCut(vec3 w){ return uOctOn && all(greaterThan((w - uCross) * uOct, vec3(0.0))); }
+vec3 cmap(float s){
+  if (uCmap == 0) return vec3(s);
+  if (uCmap == 1) return clamp(vec3(1.6*s+0.05, 1.3*s*s+0.12*s, 0.9*s*s*s+0.05*s), 0.0, 1.0) * 1.15;
+  return clamp(vec3(s*s*0.8, s*0.9, 0.35+0.65*s), 0.0, 1.0);
+}
+vec3 hot(float o){ float t = clamp((o - uOvThr) / 0.3, 0.0, 1.0); return mix(vec3(0.95, 0.22, 0.08), vec3(1.0, 0.95, 0.45), t); }
+vec3 surfCol(){ return uSurf == 0 ? vec3(0.96, 0.80, 0.70) : uSurf == 1 ? vec3(0.95, 0.93, 0.88) : vec3(0.78, 0.62, 0.52); }
+float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+vec3 shade(vec3 base, vec3 n, vec3 v){
+  vec3 L = normalize(v + vec3(0.25, 0.2, 0.45));
+  float d = max(dot(n, L), 0.0), s = pow(max(dot(reflect(-L, n), v), 0.0), 28.0);
+  return base * (0.22 + 0.78 * d) + vec3(0.22) * s;
+}
+vec3 blob(vec3 p, vec3 v, float o){ vec3 n = -normalize(gradO(p) + 1e-6); if (dot(n, v) < 0.0) n = -n; return shade(hot(o), n, v); }
+float slice(float s){ return clamp((s - (uLev - uWid*0.5)) / uWid, 0.0, 1.0); }
+void main(){
+  vec4 a = uInvVP * vec4(vNdc, -1.0, 1.0); a /= a.w;
+  vec4 b = uInvVP * vec4(vNdc,  1.0, 1.0); b /= b.w;
+  vec3 dir = normalize(b.xyz - a.xyz), o = uCam;
+  vec3 bmin = (uCMin - 0.5) * 2.0 * uHalf, bmax = (uCMax - 0.5) * 2.0 * uHalf;
+  vec3 inv = 1.0 / dir, t0 = (bmin - o) * inv, t1 = (bmax - o) * inv;
+  vec3 tn = min(t0, t1), tf = max(t0, t1);
+  float tN = max(max(max(tn.x, tn.y), tn.z), 0.0), tF = min(min(tf.x, tf.y), tf.z);
+  vec3 bg = mix(vec3(0.043, 0.051, 0.063), vec3(0.075, 0.085, 0.105), 0.5 + 0.5 * vNdc.y);
+  if (tF <= tN) { frag = vec4(withClin(bg), 1.0); return; }
+  float dt = min(min(uVox.x * uHalf.x, uVox.y * uHalf.y), uVox.z * uHalf.z) * 1.4;
+  float t = tN + dt * hash(gl_FragCoord.xy);
+  vec3 v = -dir;
+  if (uClinOn) {
+    float stepClin = min(min(uClinVox.x * uHalf.x, uClinVox.y * uHalf.y), uClinVox.z * uHalf.z);
+    for (int k = 0; k < 3000; k++) {
+      float tt = tN + float(k) * stepClin; if (tt > tF) break;
+      vec3 q = o + dir * tt; if (inCut(q)) continue;
+      vec3 uv = clamp(tc(q), vec3(0.0), vec3(1.0)); float label = texture(uClin, uv).r;
+      if (label > 0.25) {
+        vec3 normal = -vec3(texture(uClin, uv + vec3(uClinVox.x,0,0)).r - texture(uClin, uv - vec3(uClinVox.x,0,0)).r,
+          texture(uClin, uv + vec3(0,uClinVox.y,0)).r - texture(uClin, uv - vec3(0,uClinVox.y,0)).r,
+          texture(uClin, uv + vec3(0,0,uClinVox.z)).r - texture(uClin, uv - vec3(0,0,uClinVox.z)).r);
+        vec3 color = label > 0.75 ? vec3(1.0,0.68,0.25) : vec3(0.16,0.86,0.9);
+        float light = length(normal) > 0.01 ? 0.55 + 0.45 * abs(dot(normalize(normal), v)) : 1.0;
+        clinLayer = vec4(color * light, 0.82); break;
+      }
+    }
+  }
+
+  if (uMode == 0) {
+    bool onCut = true;
+    for (int n = 0; n < 3000; n++) {
+      if (t > tF) break;
+      vec3 p = o + dir * t;
+      if (inCut(p)) { onCut = true; t += dt; continue; }
+      float s = samp(p);
+      float ov = uOvOn ? sampO(p) : 0.0;
+      if (uOvOn && ov >= uOvThr) {
+        vec3 c = onCut ? mix(vec3(slice(sampS(p))), hot(ov), uOvOp) : blob(p, v, ov);
+        frag = vec4(withClin(c), 1.0); return;
+      }
+      if (s >= uIso) {
+        vec3 col;
+        if (onCut) col = vec3(slice(sampS(p)));
+        else {
+          float ta = t - dt, tb = t;
+          for (int k = 0; k < 5; k++) { float tm = 0.5*(ta+tb); if (samp(o+dir*tm) >= uIso) tb = tm; else ta = tm; }
+          vec3 q = o + dir * tb, nn = -normalize(grad(q) + 1e-6);
+          if (dot(nn, v) < 0.0) nn = -nn;
+          col = shade(surfCol(), nn, v);
+        }
+        if (uOvOn && uXray) {
+          float t2 = t;
+          for (int n2 = 0; n2 < 1500; n2++) {
+            t2 += dt * 1.5; if (t2 > tF) break;
+            vec3 p2 = o + dir * t2; if (inCut(p2)) continue;
+            float o2 = sampO(p2);
+            if (o2 >= uOvThr) { col = mix(col, blob(p2, v, o2), uOvOp * 0.85); break; }
+          }
+        }
+        frag = vec4(withClin(col), 1.0); return;
+      }
+      onCut = false; t += dt;
+    }
+    frag = vec4(withClin(bg), 1.0); return;
+  }
+  if (uMode == 1) {
+    vec3 acc = vec3(0); float al = 0.0;
+    for (int n = 0; n < 3000; n++) {
+      if (t > tF || al > 0.97) break;
+      vec3 p = o + dir * t; t += dt;
+      if (inCut(p)) continue;
+      if (uOvOn) { float ov = sampO(p); if (ov >= uOvThr) { float aO = uOvOp * 0.3; acc += (1.0 - al) * aO * hot(ov); al += (1.0 - al) * aO; } }
+      float s = clamp((samp(p) - uLo) / max(uHi - uLo, 1e-3), 0.0, 1.0);
+      if (s <= 0.0) continue;
+      float aS = 1.0 - pow(1.0 - s * s * uOp, 1.4);
+      vec3 c = cmap(s);
+      if (aS > 0.02) { vec3 g = grad(p); float gl = length(g); if (gl > 0.5) { vec3 nn = -g / gl; if (dot(nn, v) < 0.0) nn = -nn; c *= 0.45 + 0.55 * max(dot(nn, normalize(v + vec3(0.2,0.2,0.4))), 0.0); } }
+      acc += (1.0 - al) * aS * c; al += (1.0 - al) * aS;
+    }
+    frag = vec4(withClin(acc + (1.0 - al) * bg), 1.0); return;
+  }
+  float m = 0.0, mo = 0.0;
+  for (int n = 0; n < 3000; n++) {
+    if (t > tF) break;
+    vec3 p = o + dir * t; t += dt;
+    if (!inCut(p)) { m = max(m, samp(p)); if (uOvOn) mo = max(mo, sampO(p)); }
+  }
+  float s = clamp((m - uMLo) / max(uMHi - uMLo, 1e-3), 0.0, 1.0);
+  vec3 c = mix(bg, vec3(s), s > 0.0 ? 1.0 : 0.0);
+  if (uOvOn && mo >= uOvThr) c = mix(c, hot(mo), uOvOp * 0.8);
+  frag = vec4(withClin(c), 1.0);
+}`;
+
+let prog, U = {}, lastVP = null, lastEye = null;
+function mkTex(unit, data, dims) {
+  const tex = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_3D, tex);
+  gl.texImage3D(gl.TEXTURE_3D, 0, gl.R8, dims[0], dims[1], dims[2], 0, gl.RED, gl.UNSIGNED_BYTE, data);
+  for (const p of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_3D, p, gl.LINEAR);
+  for (const p of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T, gl.TEXTURE_WRAP_R]) gl.texParameteri(gl.TEXTURE_3D, p, gl.CLAMP_TO_EDGE);
+  return tex;
+}
+function bindTex(unit, tex) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_3D, tex); }
+function initGL() {
+  const mk = (t, s) => { const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh)); return sh; };
+  prog = gl.createProgram();
+  gl.attachShader(prog, mk(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, mk(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog); if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const n = gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const u = gl.getActiveUniform(prog, i); U[u.name] = gl.getUniformLocation(prog, u.name); }
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+  for (const v of META.vols) v.tex = mkTex(3, v.data, v.dims);
+  for (const k of AUX_KEYS) AUX[k].tex = mkTex(3, AUX[k].data, G2);
+  gl.uniform1i(U.uVol, 0); gl.uniform1i(U.uMask, 1); gl.uniform1i(U.uOv, 2); gl.uniform1i(U.uSeq, 4);
+  bindTex(1, AUX.mask.tex); bindTex(2, AUX.outlier.tex);
+  Clinician.initTexture();
+}
+
+function camera() {
+  const cp = Math.cos(S.pitch);
+  return [S.target[0] + S.dist * cp * Math.cos(S.yaw), S.target[1] + S.dist * cp * Math.sin(S.yaw), S.target[2] + S.dist * Math.sin(S.pitch)];
+}
+let scale = 1, idleT = 0, pending = false;
+function render3D() {
+  if (!prog || !cv.clientWidth) return;     // not loaded yet, or 3D pane hidden by the layout
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * scale;
+  const w = Math.max(1, Math.round(cv.clientWidth * dpr)), h = Math.max(1, Math.round(cv.clientHeight * dpr));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  gl.viewport(0, 0, w, h);
+  const eye = camera(), up = Math.abs(Math.cos(S.pitch)) < 1e-3 ? [0, 1, 0] : [0, 0, 1];
+  const VP = M.mul(M.persp(0.62, w / h, 0.05, 20), M.look(eye, S.target, up));
+  lastVP = VP; lastEye = eye;
+  // surface mode: anatomy from the reference (high-res T1 when available), cut faces show the selected sequence
+  const B = S.mode === 0 ? VOLS[REFK] : VOLS[S.seq], cw = toWorld(S.cross);
+  bindTex(0, B.tex); bindTex(4, VOLS[S.seq].tex); bindTex(2, (AUX[S.ovMap] || AUX.outlier).tex);
+  gl.uniformMatrix4fv(U.uInvVP, false, M.inv(VP));
+  gl.uniform3fv(U.uCam, eye); gl.uniform3fv(U.uHalf, HALF);
+  gl.uniform3fv(U.uVox, B.dims.map(n => 1 / n)); gl.uniform3fv(U.uVox2, G2.map(n => 1 / n));
+  gl.uniform3fv(U.uCMin, S.clipMin); gl.uniform3fv(U.uCMax, S.clipMax);
+  gl.uniform1i(U.uMode, S.mode); gl.uniform1f(U.uIso, S.iso); gl.uniform1i(U.uSurf, S.surf);
+  gl.uniform1f(U.uLo, S.lo); gl.uniform1f(U.uHi, S.hi); gl.uniform1f(U.uOp, S.op); gl.uniform1i(U.uCmap, S.cmap);
+  gl.uniform1f(U.uMLo, S.mlo); gl.uniform1f(U.uMHi, S.mhi);
+  const [lev, wid] = S.win[S.seq]; gl.uniform1f(U.uLev, lev); gl.uniform1f(U.uWid, wid);
+  gl.uniform1i(U.uOctOn, S.oct ? 1 : 0); gl.uniform3fv(U.uCross, cw);
+  gl.uniform3fv(U.uOct, eye.map((e, a) => (e - cw[a]) >= 0 ? 1 : -1));
+  gl.uniform1i(U.uBrain, S.brain ? 1 : 0); gl.uniform1i(U.uOvOn, S.ovMap !== 'off' ? 1 : 0);
+  gl.uniform1i(U.uXray, S.xray ? 1 : 0); gl.uniform1f(U.uOvThr, S.ovThr * 20 / 255); gl.uniform1f(U.uOvOp, S.ovOp);
+  Clinician.texture();
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  drawOverlay3D();
+}
+function redraw(interactive) {
+  if (interactive) { scale = 0.5; clearTimeout(idleT); idleT = setTimeout(() => { scale = 1; request(); }, 180); }
+  request();
+}
+function request() {
+  if (pending) return;
+  pending = true;
+  // Some embedded/background browser surfaces suspend animation frames even after input.
+  // Keep explicit control changes responsive there, coalescing both paths into one draw.
+  let finished = false, frame, timer;
+  const draw = () => { if (finished) return; finished = true; cancelAnimationFrame(frame); clearTimeout(timer); pending = false; render3D(); };
+  frame = requestAnimationFrame(draw); timer = setTimeout(draw, 80);
+}
+
+// ---------- 3D overlay: rulers + AI markers ----------
+function project(c) {
+  const p = M.xf(lastVP, [...toWorld(c), 1]); if (p[3] <= 0) return null;
+  return [(p[0] / p[3] * 0.5 + 0.5) * ovl.clientWidth, (0.5 - p[1] / p[3] * 0.5) * ovl.clientHeight];
+}
+const PRI = { high: '#ff5c5c', medium: '#ffb020', low: '#6aa7ff', info: '#7d8696' };
+function marker(ctx, x, y, r, color, label, active) {
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.lineWidth = active ? 3 : 1.5; ctx.strokeStyle = active ? '#fff' : 'rgba(0,0,0,.7)'; ctx.stroke();
+  ctx.fillStyle = '#0b0d10'; ctx.font = `600 ${Math.round(r * 1.15)}px -apple-system, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x, y + 0.5);
+}
+function drawOverlay3D() {
+  if (!lastVP) return;
+  const dpr = window.devicePixelRatio || 1;
+  if (ovl.width !== Math.round(ovl.clientWidth * dpr)) { ovl.width = Math.round(ovl.clientWidth * dpr); ovl.height = Math.round(ovl.clientHeight * dpr); }
+  const c = octx; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, ovl.clientWidth, ovl.clientHeight);
+  c.font = '12px -apple-system, sans-serif';
+  for (const m of S.meas) {
+    if (m.type !== 'ruler') continue;
+    const A = project(m.a), B = project(m.b); if (!A || !B) continue;
+    c.strokeStyle = '#ffe066'; c.lineWidth = 2; c.beginPath(); c.moveTo(...A); c.lineTo(...B); c.stroke();
+    for (const P of [A, B]) { c.beginPath(); c.arc(P[0], P[1], 3.5, 0, 7); c.fillStyle = '#ffe066'; c.fill(); }
+    const mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, t = `${m.mm.toFixed(1)} mm`;
+    c.fillStyle = 'rgba(0,0,0,.65)'; c.fillRect(mx + 6, my - 9, c.measureText(t).width + 8, 18);
+    c.fillStyle = '#ffe066'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(t, mx + 10, my);
+  }
+  if (S.pend3) { const P = project(S.pend3); if (P) { c.beginPath(); c.arc(P[0], P[1], 5, 0, 7); c.strokeStyle = '#ffe066'; c.lineWidth = 2; c.stroke(); } }
+  Clinician.draw3(c);
+  if (S.marks) S.ann.items.forEach((a, i) => {
+    const P = project(a.pos); if (P) marker(c, P[0], P[1], 9, PRI[a.priority] || PRI.info, String(i + 1), S.activeKey === 'a' + a.id);
+  });
+}
+
+// ---------- CPU ray pick (same rules as the shader) ----------
+function pick3D(ev) {
+  const r = cv.getBoundingClientRect();
+  const nx = (ev.clientX - r.left) / r.width * 2 - 1, ny = 1 - (ev.clientY - r.top) / r.height * 2;
+  const IV = M.inv(lastVP), a = M.xf(IV, [nx, ny, -1, 1]), b = M.xf(IV, [nx, ny, 1, 1]);
+  const pa = a.slice(0, 3).map(x => x / a[3]), pb = b.slice(0, 3).map(x => x / b[3]);
+  const dir = norm(sub(pb, pa)), o = lastEye;
+  let tN = 0, tF = 1e9;
+  for (let k = 0; k < 3; k++) {
+    const lo = (S.clipMin[k] - 0.5) * 2 * HALF[k], hi = (S.clipMax[k] - 0.5) * 2 * HALF[k];
+    let t0 = (lo - o[k]) / dir[k], t1 = (hi - o[k]) / dir[k]; if (t0 > t1) [t0, t1] = [t1, t0];
+    tN = Math.max(tN, t0); tF = Math.min(tF, t1);
+  }
+  if (tF <= tN) return null;
+  const cw = toWorld(S.cross), oct = o.map((e, k) => (e - cw[k]) >= 0 ? 1 : -1);
+  const inCut = p => S.oct && p.every((x, k) => (x - cw[k]) * oct[k] > 0);
+  const B = S.mode === 0 ? VOLS[REFK] : VOLS[S.seq], dt = Math.min(...B.dims.map((n, k) => HALF[k] / n)) * 1.4;
+  let al = 0, best = -1, bestP = null;
+  for (let t = tN; t <= tF; t += dt) {
+    const p = o.map((x, k) => x + dir[k] * t); if (inCut(p)) continue;
+    const s = sampBase(toVox(p));
+    if (S.mode === 0 && s >= S.iso) return toVox(p);
+    if (S.mode === 1) { const q = clamp((s - S.lo) / Math.max(S.hi - S.lo, 1e-3), 0, 1); al += (1 - al) * (1 - Math.pow(1 - q * q * S.op, 1.4)); if (al > 0.5) return toVox(p); }
+    if (S.mode === 2 && s > best) { best = s; bestP = p; }
+  }
+  return bestP ? toVox(bestP) : null;
+}
+
+// ---------- 3D interaction ----------
+let drag = null;
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  if (Clinician.active() && e.button === 0 && !e.shiftKey) {
+    const p = pick3D(e); drag = null;
+    if (p) { if (S.tool === 'clin-point') Clinician.place(p); else Clinician.begin(p, -1); }
+    return;
+  }
+  drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, pan: e.button === 2 || e.shiftKey }; });
+cv.addEventListener('pointerup', e => {
+  if (Clinician.hasStroke()) { Clinician.end(); drag = null; return; }
+  if (drag && S.tool === 'ruler' && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4) {
+    const p = pick3D(e);
+    if (p) {
+      if (!S.pend3) S.pend3 = p;
+      else { addMeas({ type: 'ruler', a: S.pend3, b: p, plane: -1 }); S.pend3 = null; }
+      render3D();
+    }
+  }
+  drag = null;
+});
+window.addEventListener('blur', () => { Clinician.end(true); drag = null; drag2 = null; });
+cv.addEventListener('pointercancel', () => { Clinician.end(true); drag = null; });
+cv.addEventListener('pointermove', e => {
+  if (Clinician.hasStroke()) { const p = pick3D(e); if (p) Clinician.paint(p); else Clinician.breakStroke(); return; }
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (drag.pan) {
+    const eye = camera(), f = norm(sub(S.target, eye)), r = norm(cross(f, [0, 0, 1])), u = cross(r, f), k = S.dist * 0.0015;
+    S.target = S.target.map((t, a) => t - r[a] * dx * k + u[a] * dy * k);
+  } else { S.yaw -= dx * 0.008; S.pitch = clamp(S.pitch + dy * 0.008, -1.55, 1.55); }
+  redraw(true);
+});
+cv.addEventListener('wheel', e => { e.preventDefault(); S.dist = clamp(S.dist * Math.exp(e.deltaY * 0.001), 0.6, 6); redraw(true); }, { passive: false });
+
+const VIEWS = { front: [Math.PI / 2, 0], back: [-Math.PI / 2, 0], left: [Math.PI, 0], right: [0, 0], top: [Math.PI / 2, 1.549], iso: [Math.PI / 2 + 0.75, 0.3] };
+document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { [S.yaw, S.pitch] = VIEWS[b.dataset.v]; S.target = [0, 0, 0]; S.dist = 2.3; redraw(); });
+[S.yaw, S.pitch] = VIEWS.iso;
+function lookAtPoint(c) {                 // camera on the side of the selected point
+  const w = toWorld(c), d = Math.hypot(...w) > 0.05 ? norm(w) : [0, 1, 0];
+  S.yaw = Math.atan2(d[1], d[0]); S.pitch = clamp(Math.asin(d[2]) + 0.25, -1.2, 1.2); S.target = [0, 0, 0]; S.dist = 2.3;
+}
+
+// ---------- 2D slice views ----------
+const views = [...document.querySelectorAll('.view canvas')].map(c => ({ c, p: +c.dataset.p, ctx: c.getContext('2d'), off: document.createElement('canvas'), num: c.parentNode.querySelector('.num') }));
+const PL = { 2: { u: 0, v: 1 }, 1: { u: 0, v: 2 }, 0: { u: 1, v: 2 } };
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = { 0: css('--sa'), 1: css('--co'), 2: css('--ax') };
+const LBL = { 2: ['R', 'L', 'A', 'P'], 1: ['R', 'L', 'S', 'I'], 0: ['A', 'P', 'S', 'I'] };
+function layout(v) {
+  const { u, v: vv } = PL[v.p], dpr = window.devicePixelRatio || 1, cw = v.c.clientWidth * dpr, ch = v.c.clientHeight * dpr;
+  const pw = phys[u], ph = phys[vv], s = Math.min(cw / pw, ch / ph) * 0.96;
+  return { u, vv, cw, ch, dpr, dw: pw * s, dh: ph * s, ox: (cw - pw * s) / 2, oy: (ch - ph * s) / 2 };
+}
+const toScr = (L, cu, cv_) => [L.ox + (1 - (cu + 0.5) / G1[L.u]) * L.dw, L.oy + (1 - (cv_ + 0.5) / G1[L.vv]) * L.dh];
+const fromScr = (L, x, y) => [(1 - (x - L.ox) / L.dw) * G1[L.u] - 0.5, (1 - (y - L.oy) / L.dh) * G1[L.vv] - 0.5];
+const onSlice = (m, p) => m.plane === p && Math.floor(m.slice / VOLS[S.seq].f) === Math.floor(S.cross[p] / VOLS[S.seq].f);
+let drag2 = null;
+
+function draw2D() {
+  // Resize/layout events can arrive between decoding the reference and auxiliary arrays.
+  if (!VOLS[S.seq]?.data || AUX_KEYS.some(k => !AUX[k]?.data)) return;
+  const B = VOLS[S.seq], f = B.f, bd = B.dims, [lev, wid] = S.win[S.seq];
+  const lut = new Uint8ClampedArray(256); for (let i = 0; i < 256; i++) lut[i] = (i / 255 - (lev - wid / 2)) / wid * 255;
+  const ov = S.ovMap !== 'off' ? AUX[S.ovMap].data : null, thr = S.ovThr * 20, mk = S.brain ? AUX.mask.data : null;
+  const g2 = f === 2 ? 1 : 2;               // base-grid index → G2 index divisor
+  for (const v of views) {
+    if (!v.c.clientWidth) continue;         // pane hidden by the layout
+    const L = layout(v), { u, vv } = L, nu = bd[u], nv = bd[vv];
+    if (v.c.width !== Math.round(L.cw) || v.c.height !== Math.round(L.ch)) { v.c.width = Math.round(L.cw); v.c.height = Math.round(L.ch); }
+    v.off.width = nu; v.off.height = nv;
+    const oc = v.off.getContext('2d'), img = oc.createImageData(nu, nv), px = img.data;
+    const idx = [0, 0, 0]; idx[v.p] = Math.min(bd[v.p] - 1, Math.floor(S.cross[v.p] / f));
+    for (let y = 0; y < nv; y++) {
+      idx[vv] = nv - 1 - y;
+      for (let x = 0; x < nu; x++) {
+        idx[u] = nu - 1 - x;
+        let g = lut[B.data[idx[0] + idx[1] * bd[0] + idx[2] * bd[0] * bd[1]]], r = g, gg = g, b = g;
+        if (mk || ov) {
+          const j2 = Math.min(Math.floor(idx[0] / g2), G2[0] - 1) + Math.min(Math.floor(idx[1] / g2), G2[1] - 1) * G2[0] + Math.min(Math.floor(idx[2] / g2), G2[2] - 1) * G2[0] * G2[1];
+          if (mk && mk[j2] < 128) { r *= 0.28; gg *= 0.28; b *= 0.28; }
+          if (ov && ov[j2] >= thr) {
+            const t = Math.min(1, (ov[j2] - thr) / 80), a = S.ovOp * (0.55 + 0.45 * t);
+            r = r * (1 - a) + (242 + 13 * t) * a; gg = gg * (1 - a) + (60 + 180 * t) * a; b = b * (1 - a) + (25 + 90 * t) * a;
+          }
+        }
+        const o = (y * nu + x) * 4; px[o] = r; px[o + 1] = gg; px[o + 2] = b; px[o + 3] = 255;
+      }
+    }
+    oc.putImageData(img, 0, 0);
+    const c = v.ctx; c.fillStyle = '#000'; c.fillRect(0, 0, v.c.width, v.c.height);
+    c.imageSmoothingEnabled = true; c.drawImage(v.off, L.ox, L.oy, L.dw, L.dh);
+    const dpr = L.dpr, [cx, cy] = toScr(L, S.cross[u], S.cross[vv]);
+    c.lineWidth = dpr; c.globalAlpha = 0.7;
+    c.strokeStyle = COL[vv]; c.beginPath(); c.moveTo(L.ox, cy); c.lineTo(L.ox + L.dw, cy); c.stroke();
+    c.strokeStyle = COL[u]; c.beginPath(); c.moveTo(cx, L.oy); c.lineTo(cx, L.oy + L.dh); c.stroke();
+    c.globalAlpha = 1;
+    // A highlighted plane is evidence navigation, never a lesion contour/point.
+    if (S.gemmaPlane !== null && document.getElementById('gemmaPlanes').checked) {
+      const z = S.gemma.reviews[S.gemmaPlane].z;
+      c.save(); c.strokeStyle = '#c89bff'; c.lineWidth = 2 * dpr; c.setLineDash([6 * dpr, 4 * dpr]);
+      if (v.p === 2 && Math.abs(S.cross[2] - z) < .51) c.strokeRect(L.ox, L.oy, L.dw, L.dh);
+      else if (v.p !== 2) {
+        const y = toScr(L, S.cross[u], z)[1]; c.beginPath(); c.moveTo(L.ox, y); c.lineTo(L.ox + L.dw, y); c.stroke();
+      }
+      c.setLineDash([]); c.fillStyle = '#d7baff'; c.font = `${11 * dpr}px -apple-system, sans-serif`; c.textAlign = 'left';
+      if (v.p !== 2 || Math.abs(S.cross[2] - z) < .51) c.fillText('MedGemma review plane · unlocalized', 10 * dpr, L.ch - 28 * dpr);
+      c.restore();
+    }
+    Clinician.draw2(v, L);
+    // measurements on this slice
+    const all = drag2 && drag2.v === v && drag2.m ? [...S.meas, drag2.m] : S.meas;
+    c.font = `${12 * dpr}px -apple-system, sans-serif`; c.textBaseline = 'middle'; c.textAlign = 'left';
+    for (const m of all) {
+      if (!onSlice(m, v.p)) continue;
+      c.strokeStyle = '#ffe066'; c.fillStyle = '#ffe066'; c.lineWidth = 1.6 * dpr;
+      if (m.type === 'ruler') {
+        const A = toScr(L, m.a[u], m.a[vv]), Bp = toScr(L, m.b[u], m.b[vv]);
+        c.beginPath(); c.moveTo(...A); c.lineTo(...Bp); c.stroke();
+        for (const P of [A, Bp]) { c.beginPath(); c.arc(P[0], P[1], 3 * dpr, 0, 7); c.fill(); }
+        c.fillText(`${m.mm.toFixed(1)} mm`, Math.max(A[0], Bp[0]) + 6 * dpr, (A[1] + Bp[1]) / 2);
+      } else {
+        const C = toScr(L, m.c[u], m.c[vv]), rx = m.r / SP1[u] / G1[u] * L.dw, ry = m.r / SP1[vv] / G1[vv] * L.dh;
+        c.beginPath(); c.ellipse(C[0], C[1], rx, ry, 0, 0, 7); c.stroke();
+        c.fillText(m.label || 'ROI', C[0] + rx + 5 * dpr, C[1]);
+      }
+    }
+    // AI markers near this slice (±4 mm)
+    if (S.marks) S.ann.items.forEach((a, i) => {
+      const dmm = Math.abs(a.pos[v.p] - S.cross[v.p]) * SP1[v.p]; if (dmm > 4) return;
+      const P = toScr(L, a.pos[u], a.pos[vv]), rr = 8 * dpr;
+      c.globalAlpha = 1 - dmm / 6;
+      c.beginPath(); c.arc(P[0], P[1], rr * 1.9, 0, 7); c.lineWidth = 1.5 * dpr; c.strokeStyle = PRI[a.priority] || PRI.info; c.stroke();
+      marker(c, P[0] + rr * 2.4, P[1] - rr * 1.6, rr, PRI[a.priority] || PRI.info, String(i + 1), S.activeKey === 'a' + a.id);
+      c.globalAlpha = 1;
+    });
+    c.fillStyle = '#9aa3b2'; c.font = `${11 * dpr}px -apple-system, sans-serif`; c.textBaseline = 'middle';
+    const [l, r, t, b] = LBL[v.p];
+    c.textAlign = 'left'; c.fillText(l, 6 * dpr, L.ch / 2); c.textAlign = 'right'; c.fillText(r, L.cw - 6 * dpr, L.ch / 2);
+    c.textAlign = 'center'; c.fillText(t, L.cw / 2, 26 * dpr); c.fillText(b, L.cw / 2, L.ch - 10 * dpr);
+    v.num.textContent = `${idx[v.p] + 1} / ${bd[v.p]}`;
+  }
+  const mm = mmOf(S.cross).map(x => x.toFixed(1)), raw = tri(B, S.cross) * B.hi;
+  const ovs = ['outlier', 'asym'].map(k => (tri(AUX[k], S.cross) * 255 / 20).toFixed(1));
+  document.getElementById('info').innerHTML =
+    `R/L <b>${mm[0]}</b> · A/P <b>${mm[1]}</b> · S/I <b>${mm[2]}</b> mm<br>voxel <b>${S.cross.map(Math.round).join(', ')}</b><br>` +
+    `${B.name}: <b>${raw.toFixed(0)}</b> ${B.unit}<br>outlier <b>${ovs[0]}σ</b> · asymmetry <b>${ovs[1]}</b>`;
+}
+for (const v of views) {
+  const at = e => { const L = layout(v), r = v.c.getBoundingClientRect(); return [L, fromScr(L, (e.clientX - r.left) * L.dpr, (e.clientY - r.top) * L.dpr)]; };
+  const pt = (L, uv) => { const q = [...S.cross]; q[L.u] = clamp(uv[0], 0, G1[L.u] - 1); q[L.vv] = clamp(uv[1], 0, G1[L.vv] - 1); return q; };
+  v.c.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    v.c.setPointerCapture(e.pointerId); const [L, uv] = at(e);
+    if (Clinician.active()) {
+      if (uv[0] < -.5 || uv[1] < -.5 || uv[0] > G1[L.u] - .5 || uv[1] > G1[L.vv] - .5) return;
+      const p = pt(L, uv); drag2 = { v, clinician: true };
+      if (S.tool === 'clin-point') Clinician.place(p); else Clinician.begin(p, v.p);
+      return;
+    }
+    if (S.tool === 'nav') { drag2 = { v, nav: true }; S.cross = pt(L, uv).map(Math.round); cutFromSlice(v.p); draw2D(); redraw(true); return; }
+    const a = pt(L, uv);
+    drag2 = { v, m: S.tool === 'ruler' ? { type: 'ruler', a, b: a, mm: 0, plane: v.p, slice: S.cross[v.p] } : { type: 'roi', c: a, r: 0, plane: v.p, slice: S.cross[v.p] } };
+  });
+  v.c.addEventListener('pointermove', e => {
+    if (!drag2 || drag2.v !== v) return; const [L, uv] = at(e);
+    if (drag2.clinician) {
+      if (uv[0] < -.5 || uv[1] < -.5 || uv[0] > G1[L.u] - .5 || uv[1] > G1[L.vv] - .5) Clinician.breakStroke();
+      else if (Clinician.hasStroke()) Clinician.paint(pt(L, uv));
+      return;
+    }
+    if (drag2.nav) { S.cross = pt(L, uv).map(Math.round); cutFromSlice(v.p); draw2D(); redraw(true); return; }
+    const m = drag2.m, b = pt(L, uv);
+    if (m.type === 'ruler') { m.b = b; m.mm = distMM(m.a, b); } else m.r = distMM(m.c, b);
+    draw2D();
+  });
+  v.c.addEventListener('pointercancel', () => { Clinician.end(true); drag2 = null; draw2D(); });
+  v.c.addEventListener('pointerup', () => {
+    if (drag2?.clinician) { Clinician.end(); drag2 = null; return; }
+    if (drag2 && drag2.m) { const m = drag2.m; if ((m.type === 'ruler' ? m.mm : m.r) > 0.8) addMeas(m); }
+    drag2 = null; draw2D();
+  });
+  v.c.addEventListener('wheel', e => {
+    e.preventDefault(); if (Clinician.hasStroke()) return; const f = Clinician.active() ? 1 : VOLS[S.seq].f;
+    S.cross[v.p] = clamp(S.cross[v.p] + (e.deltaY > 0 ? -f : f), 0, G1[v.p] - 1); cutFromSlice(v.p); draw2D(); redraw(true);
+  }, { passive: false });
+}
+
+// ---------- measurements ----------
+let measN = 0;
+function roiStats(m) {
+  const { u, v: vv } = PL[m.plane], ru = m.r / SP1[u], rv = m.r / SP1[vv], out = {};
+  const pts = [];
+  for (let a = Math.floor(m.c[u] - ru); a <= Math.ceil(m.c[u] + ru); a++)
+    for (let b = Math.floor(m.c[vv] - rv); b <= Math.ceil(m.c[vv] + rv); b++) {
+      if (a < 0 || b < 0 || a >= G1[u] || b >= G1[vv]) continue;
+      if (((a - m.c[u]) * SP1[u]) ** 2 + ((b - m.c[vv]) * SP1[vv]) ** 2 > m.r ** 2) continue;
+      const q = [0, 0, 0]; q[m.plane] = m.slice; q[u] = a; q[vv] = b; pts.push(q);
+    }
+  for (const V of META.vols) {
+    const vals = pts.map(q => tri(V, q) * V.hi);
+    const mean = vals.reduce((s, x) => s + x, 0) / (vals.length || 1);
+    const sd = Math.sqrt(vals.reduce((s, x) => s + (x - mean) ** 2, 0) / (vals.length || 1));
+    out[V.key] = { mean, sd, min: Math.min(...vals), max: Math.max(...vals) };
+  }
+  return { n: pts.length, area: pts.length * SP1[u] * SP1[vv], seq: out };
+}
+function addMeas(m) {
+  m.id = ++measN; m.label = (m.type === 'ruler' ? 'Ruler ' : 'ROI ') + m.id;
+  if (m.type === 'ruler') m.mm = distMM(m.a, m.b); else m.stats = roiStats(m);
+  S.meas.push(m); renderMeas(); draw2D(); redraw();
+}
+function renderMeas() {
+  const el = document.getElementById('meas'); el.innerHTML = '';
+  const PN = { 0: 'sagittal', 1: 'coronal', 2: 'axial', '-1': '3D' };
+  for (const m of S.meas) {
+    const d = document.createElement('div'); d.className = 'item';
+    let body = '';
+    if (m.type === 'ruler') body = `<b>${m.mm.toFixed(1)} mm</b> · ${PN[m.plane]}`;
+    else body = `<b>${m.stats.area.toFixed(0)} mm²</b> · r ${m.r.toFixed(1)} mm · ${PN[m.plane]}<table class="st">` +
+      META.vols.map(V => { const s = m.stats.seq[V.key]; return `<tr><td>${V.name}</td><td>${s.mean.toFixed(0)} ± ${s.sd.toFixed(0)}</td><td>${V.unit}</td></tr>`; }).join('') + '</table>';
+    d.innerHTML = `<div class="t">${m.label}<button class="x" title="Delete">✕</button></div><div class="d">${body}</div>`;
+    d.querySelector('.x').onclick = e => { e.stopPropagation(); S.meas = S.meas.filter(x => x !== m); renderMeas(); draw2D(); redraw(); };
+    d.onclick = () => {
+      const c = m.type === 'ruler' ? m.a.map((x, i) => (x + m.b[i]) / 2) : m.c;
+      S.cross = c.map(Math.round); if (m.plane >= 0) S.cross[m.plane] = m.slice; draw2D(); redraw();
+    };
+    el.appendChild(d);
+  }
+}
+document.getElementById('measClear').onclick = () => { S.meas = []; S.pend3 = null; renderMeas(); draw2D(); redraw(); };
+document.getElementById('measCsv').onclick = () => {
+  const rows = [['label', 'type', 'plane', 'value', 'unit', 'x_vox', 'y_vox', 'z_vox', ...META.vols.map(v => v.key + '_mean')]];
+  for (const m of S.meas) {
+    const c = m.type === 'ruler' ? m.a : m.c;
+    rows.push([m.label, m.type, m.plane, (m.type === 'ruler' ? m.mm : m.stats.area).toFixed(2), m.type === 'ruler' ? 'mm' : 'mm2',
+      ...c.map(x => x.toFixed(1)), ...META.vols.map(v => m.stats ? m.stats.seq[v.key].mean.toFixed(1) : '')]);
+  }
+  const a = document.createElement('a'); a.download = 'measurements.csv';
+  a.href = URL.createObjectURL(new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' })); a.click();
+};
+
+// ---------- algorithmic findings ----------
+function renderFindings() {
+  const el = document.getElementById('finds'); el.innerHTML = '';
+  const list = META.findings.map((f, i) => ({ ...f, key: 'f' + i })).filter(f => S.ovMap === 'off' || S.ovMap === 'gt' || f.kind === S.ovMap)
+    .filter(f => !S.hideArt || !['artifact', 'normal-likely', 'edge'].includes(f.cls));
+  if (!list.length) { el.innerHTML = `<div class="note">${S.ovMap === 'off' ? 'Choose a map to see its hotspots.' : 'No hotspots left after hiding likely artifacts and normal anatomy.'}</div>`; return; }
+  for (const f of list) {
+    const d = document.createElement('div'); d.className = `item ${f.cls}` + (S.activeKey === f.key ? ' active' : '');
+    d.innerHTML = `<div class="t">${f.kind === 'outlier' ? 'Outlier' : 'Asymmetry'}<span class="n">${f.vol} mm³</span></div>` +
+      `<div class="d">${f.where} · ${f.text}</div><div class="m">${f.drivers.map(x => `<span class="pill">${x}</span>`).join('')}</div>`;
+    d.onclick = () => { S.activeKey = f.key; setOv(f.kind); goTo(f.pos); renderFindings(); };
+    el.appendChild(d);
+  }
+}
+function goTo(pos, seq) {
+  S.cross = pos.map((c, a) => clamp(Math.round(c), 0, G1[a] - 1));
+  if (seq && VOLS[seq]) setSeq(seq);
+  cutFromSlice(2);
+  lookAtPoint(S.cross); draw2D(); redraw();
+}
+
+// ---------- AI annotations ----------
+function setAnnotations(A) {
+  S.ann = { summary: A && A.summary || null, items: (A && A.items || []).slice() };
+  const rank = { high: 0, medium: 1, low: 2, info: 3 };
+  S.ann.items.sort((a, b) => (rank[a.priority] ?? 4) - (rank[b.priority] ?? 4) || a.id - b.id);
+  const sm = document.getElementById('summary');
+  sm.textContent = S.ann.summary ? S.ann.summary.text : '';
+  const el = document.getElementById('annots'); el.innerHTML = '';
+  document.getElementById('annEmpty').style.display = S.ann.items.length ? 'none' : 'block';
+  S.ann.items.forEach((a, i) => {
+    const d = document.createElement('div'); d.className = `item ${a.priority}` + (S.activeKey === 'a' + a.id ? ' active' : '');
+    const mm = mmOf(a.pos).map(x => x.toFixed(0)).join(', ');
+    d.innerHTML = `<div class="t"><span class="n">${i + 1}.</span>${esc(a.title)}</div>` +
+      `<div class="d">${esc(a.rationale || '')}</div>` +
+      `<div class="m"><span class="pill">${a.priority}</span>${(a.sequences || []).map(s => `<span class="pill">${esc(VOLS[s] ? VOLS[s].name : s)}</span>`).join('')} ${mm} mm</div>`;
+    d.onclick = () => { S.activeKey = 'a' + a.id; goTo(a.pos, (a.sequences || [])[0]); setAnnotations(S.ann); };
+    el.appendChild(d);
+  });
+  draw2D(); redraw();
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+document.getElementById('marks').onchange = e => { S.marks = e.target.checked; draw2D(); redraw(); };
+
+// MedGemma reports describe sampled planes, not point-localized lesions.
+function renderGemma() {
+  const report = S.gemma, status = document.getElementById('gemmaStatus'), list = document.getElementById('gemmaList');
+  list.replaceChildren();
+  if (!report || report.status !== 'complete') { status.textContent = report?.message || 'No MedGemma report attached.'; return; }
+  const yes = report.reviews.filter(r => r.decision.review === 'yes').length;
+  document.getElementById('gemmaCount').textContent = `${yes} flagged`;
+  status.textContent = `${report.source} · ${report.reviews.length} sampled planes · ${report.sampling_mm.toFixed(1)} mm spacing. Inputs verified against this study.` +
+    (report.development_limit ? ' Development run: intentionally limited coverage.' : '') +
+    (yes === report.reviews.length ? ' Every sampled plane was flagged; this run does not distinguish abnormal from normal planes.' : '');
+  const all = document.getElementById('gemmaFilter').value === 'all';
+  report.reviews.forEach((row, i) => {
+    if (!all && !['yes', 'uncertain'].includes(row.decision.review)) return;
+    const b = document.createElement('button'); b.className = 'item gemma-row' + (S.gemmaPlane === i ? ' active' : '');
+    b.innerHTML = `<span class="t">Axial plane ${Math.round(row.z) + 1} · ${esc(row.decision.review)}</span><span class="d" style="display:block">${esc(row.decision.observation)}</span>`;
+    b.onclick = () => selectGemma(i); list.append(b);
+  });
+  if (!list.children.length) list.textContent = 'No flagged/uncertain planes in this filter. Use All reviewed planes to inspect the run.';
+}
+function selectGemma(index) {
+  S.gemmaPlane = index; const row = S.gemma.reviews[index];
+  S.cross[2] = clamp(Math.round(row.z), 0, D - 1);
+  const sequence = S.gemma.sequences.find(s => VOLS[s]); if (sequence) setSeq(sequence);
+  cutFromSlice(2);
+  const detail = document.getElementById('gemmaDetail');
+  detail.innerHTML = `<p><b>Selected axial plane ${Math.round(row.z) + 1}</b><br>No lesion position within this plane was supplied.</p>` +
+    `<p>${esc(row.decision.observation)}</p>` + (row.decision.observation_truncated ? '<p class="note">Explanation reached the token limit.</p>' : '') +
+    `<details><summary>Exact model input images</summary><div class="gemma-images"></div></details>` +
+    `<details><summary>Prompt and raw response</summary><pre>${esc(row.prompt)}</pre><pre>${esc(row.text)}</pre></details>`;
+  const images = detail.querySelector('.gemma-images');
+  for (const frame of row.images) {
+    const figure = document.createElement('figure'), button = document.createElement('button'), img = document.createElement('img'), caption = document.createElement('figcaption');
+    img.src = frame.src; img.alt = `${frame.sequence.toUpperCase()} exact model input at axial plane ${Math.round(row.z) + 1}`;
+    button.setAttribute('aria-label', 'Enlarge ' + img.alt);
+    button.onclick = () => { const full = document.getElementById('gemmaImageFull'); full.src = frame.src; full.alt = img.alt; document.getElementById('gemmaImageCaption').textContent = img.alt; document.getElementById('gemmaImageDialog').showModal(); };
+    caption.textContent = frame.sequence.toUpperCase(); button.append(img); figure.append(button, caption); images.append(figure);
+  }
+  renderGemma(); draw2D(); redraw();
+}
+document.getElementById('gemmaFilter').onchange = renderGemma;
+document.getElementById('gemmaPlanes').onchange = () => draw2D();
+document.getElementById('gemmaImageClose').onclick = () => document.getElementById('gemmaImageDialog').close();
+
+// live link to the MCP server (only when served over http by brain_mcp.py)
+let lastAnn = '', lastFocus = 0;
+async function poll() {
+  try {
+    const a = await fetch('/api/annotations', { cache: 'no-store' }); const txt = await a.text();
+    if (txt !== lastAnn) { lastAnn = txt; setAnnotations(JSON.parse(txt)); }
+    const f = await (await fetch('/api/focus', { cache: 'no-store' })).json();
+    if (f && f.ts && f.ts !== lastFocus) {
+      lastFocus = f.ts;
+      if (f.overlay) setOv(f.overlay);
+      if (f.annotation_id) S.activeKey = 'a' + f.annotation_id;
+      goTo(f.pos, f.sequence); setAnnotations(S.ann);
+    }
+    const st = { cross: S.cross, sequence: S.seq, overlay: S.ovMap, mode: S.mode, measurements: S.meas.map(m => ({ label: m.label, type: m.type, mm: m.mm, area: m.stats && m.stats.area, pos: m.a || m.c })) };
+    fetch('/api/viewer_state', { method: 'POST', body: JSON.stringify(st) });
+    document.getElementById('live').style.display = 'inline';
+  } catch (e) { document.getElementById('live').style.display = 'none'; }
+}
+
+// ---------- controls ----------
+function bindRange(id, get, set, fmt = v => v.toFixed(2)) {
+  const el = document.getElementById(id), out = el.parentNode.querySelector('output');
+  el.value = get(); out.textContent = fmt(+el.value);
+  el.addEventListener('input', () => { set(+el.value); out.textContent = fmt(+el.value); draw2D(); redraw(true); });
+  return () => { el.value = get(); out.textContent = fmt(+el.value); };
+}
+for (const k of ['iso', 'lo', 'hi', 'op', 'mlo', 'mhi']) bindRange(k, () => S[k], v => S[k] = v);
+const syncLev = bindRange('lev', () => S.win[S.seq][0], v => S.win[S.seq][0] = v);
+const syncWid = bindRange('wid', () => S.win[S.seq][1], v => S.win[S.seq][1] = v);
+const syncThr = bindRange('ovThr', () => S.ovThr, v => S.ovThr = v, v => v.toFixed(1));
+bindRange('ovOp', () => S.ovOp, v => S.ovOp = v);
+const seqSel = document.getElementById('seq');
+META.vols.forEach(v => seqSel.add(new Option(v.name + (v.f > 1 ? ` (${SP1.map(s => +(s * v.f).toFixed(2)).join('×')} mm grid)` : ''), v.key)));
+function setSeq(k) { S.seq = k; seqSel.value = k; syncLev(); syncWid(); draw2D(); redraw(); }
+seqSel.onchange = () => setSeq(seqSel.value);
+function setOv(k) {
+  if (k !== S.ovMap) { S.ovThr = k === 'asym' ? 4 : 5; syncThr(); }
+  S.ovMap = k;
+  document.querySelectorAll('#ovmap button').forEach(x => x.classList.toggle('on', x.dataset.o === k));
+  document.getElementById('ovdesc').textContent = OVDESC[k];
+  renderFindings(); draw2D(); redraw();
+}
+document.querySelectorAll('#ovmap button').forEach(b => b.onclick = () => setOv(b.dataset.o));
+document.getElementById('xray').onchange = e => { S.xray = e.target.checked; redraw(); };
+document.getElementById('hideArt').onchange = e => { S.hideArt = e.target.checked; renderFindings(); };
+document.getElementById('brain').onchange = e => {
+  S.brain = e.target.checked;
+  if (S.seq === REFK) { S.iso = S.brain ? 0.2 : 0.14; document.getElementById('iso').value = S.iso; document.getElementById('iso').parentNode.querySelector('output').textContent = S.iso.toFixed(2); }
+  draw2D(); redraw();
+};
+document.getElementById('surf').onchange = e => { S.surf = +e.target.value; redraw(); };
+document.getElementById('cmap').onchange = e => { S.cmap = +e.target.value; redraw(); };
+function cutFromSlice(axis) {
+  if (!S.followCut) return;
+  S.cutAxis = axis; S.clipMin = [0, 0, 0]; S.clipMax = [1, 1, 1];
+  const position = (S.cross[axis] + .5) / G1[axis];
+  const before = document.getElementById('cutSide').value === 'before';
+  (before ? S.clipMax : S.clipMin)[axis] = position;
+  document.getElementById('cutStatus').textContent = `${['Sagittal', 'Coronal', 'Axial'][axis]} cut · keeping ${before ? ['patient left', 'posterior', 'inferior'][axis] : ['patient right', 'anterior', 'superior'][axis]} side.`;
+  syncClip();
+}
+document.getElementById('followCut').onchange = e => { S.followCut = e.target.checked; if (S.followCut && S.cutAxis !== null) cutFromSlice(S.cutAxis); redraw(); };
+document.getElementById('cutSide').onchange = () => { if (S.cutAxis !== null) cutFromSlice(S.cutAxis); redraw(); };
+const HUD = ['Surface: slices appear where the head is cut away', 'Volume: raise “Low” to strip away skin and scalp', 'MIP: brightest voxel along each ray'];
+const TOOLHINT = { nav: 'Click or drag in a slice to move the crosshair.', ruler: 'Drag in a slice to measure a distance, or click two points on the 3D surface. Esc cancels.', roi: 'Drag in a slice from the center outwards to draw a circle. Stats cover every sequence.' };
+function hud() { const h = document.getElementById('hud'); if (h) h.textContent = Clinician.active() ? Clinician.hint() : S.tool === 'ruler' ? (S.pend3 ? 'Ruler: click the second point' : 'Ruler: click a point on the 3D surface') : HUD[S.mode]; }
+document.querySelectorAll('#mode button').forEach(b => b.onclick = () => {
+  S.mode = +b.dataset.m;
+  document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.only').forEach(x => x.classList.toggle('show', +x.dataset.for === S.mode));
+  hud(); redraw();
+});
+document.querySelectorAll('#tool button').forEach(b => b.onclick = () => {
+  S.tool = b.dataset.t; S.pend3 = null;
+  document.querySelectorAll('#tool button').forEach(x => x.classList.toggle('on', x === b));
+  document.getElementById('toolHint').textContent = TOOLHINT[S.tool];
+  cv.classList.toggle('pick', S.tool === 'ruler'); Clinician.render(); hud(); render3D();
+});
+const clips = [...document.querySelectorAll('.clip')];
+function syncClip() { clips.forEach(el => { const a = +el.dataset.a, e = +el.dataset.e; el.value = e ? S.clipMax[a] : S.clipMin[a]; el.parentNode.querySelector('output').textContent = (+el.value).toFixed(2); }); }
+clips.forEach(el => el.addEventListener('input', () => {
+  const a = +el.dataset.a, e = +el.dataset.e, v = +el.value;
+  if (e) S.clipMax[a] = Math.max(v, S.clipMin[a] + 0.01); else S.clipMin[a] = Math.min(v, S.clipMax[a] - 0.01);
+  S.followCut = false; document.getElementById('followCut').checked = false;
+  document.getElementById('cutStatus').textContent = 'Manual box cut defined by sliders.';
+  syncClip(); redraw(true);
+}));
+document.getElementById('clipReset').onclick = () => { S.clipMin = [0, 0, 0]; S.clipMax = [1, 1, 1]; S.cutAxis = null; document.getElementById('cutStatus').textContent = 'Whole volume.'; syncClip(); redraw(); };
+document.getElementById('halfL').onclick = () => {
+  S.followCut = false; document.getElementById('followCut').checked = false; document.getElementById('cutStatus').textContent = 'Manual sagittal cut at crosshair.';
+  S.clipMin = [0, 0, 0]; S.clipMax = [(S.cross[0] + 0.5) / W, 1, 1]; syncClip();
+  [S.yaw, S.pitch] = VIEWS.left; S.target = [0, 0, 0]; S.dist = 2.3; redraw();
+};
+syncClip();
+document.getElementById('spin').onchange = e => { S.spin = e.target.checked; if (S.spin) spin(); };
+function spin() { if (!S.spin) return; S.yaw += 0.006; redraw(true); requestAnimationFrame(spin); }
+document.getElementById('snap').onclick = () => {
+  scale = 1.5; render3D(); scale = 1;
+  const t = document.createElement('canvas'); t.width = cv.width; t.height = cv.height;
+  const c = t.getContext('2d'); c.drawImage(cv, 0, 0); c.drawImage(ovl, 0, 0, t.width, t.height);
+  const a = document.createElement('a'); a.download = 'brain_3d.png'; a.href = t.toDataURL('image/png'); a.click();
+  render3D();
+};
+window.addEventListener('resize', () => { applyPaneOrder(); draw2D(); redraw(); });
+
+// ---------- layout: 3D + slices / four-up / slices only / one pane maximized ----------
+const app = document.getElementById('app'), stage = document.getElementById('stage'), split = document.getElementById('split');
+const PANES = ['d3', 'ax', 'co', 'sa'];
+const ICON_MAX = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>';
+const ICON_MIN = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M13 7H9V3M3 9h4v4M9 7l4.5-4.5M7 9l-4.5 4.5"/></svg>';
+const LAY = { layout: 'std', max: null, side: true, mprw: null, sidew: 300, order: ['ax', 'co', 'sa'] };
+const store = {                             // per-browser convenience only; the page works without it
+  get(k) { try { return JSON.parse(localStorage.getItem('mri-preread.' + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem('mri-preread.' + k, JSON.stringify(v)); } catch (e) {} },
+};
+{ const sv = store.get('layout'); if (sv && ['std', 'quad', 'row'].includes(sv.layout)) Object.assign(LAY, { layout: sv.layout, side: sv.side !== false, mprw: Number.isFinite(sv.mprw) ? sv.mprw : null, sidew: Number.isFinite(sv.sidew) ? clamp(sv.sidew, 230, 600) : 300, order: Array.isArray(sv.order) && [...sv.order].sort().join(',') === 'ax,co,sa' ? sv.order : ['ax','co','sa'] }); }
+{ // link options, e.g. brain_viewer.html#layout=quad or #max=ax&panel=0
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (['std', 'quad', 'row'].includes(h.get('layout'))) LAY.layout = h.get('layout');
+  if (PANES.includes(h.get('max'))) LAY.max = h.get('max');
+  if (['0', '1'].includes(h.get('panel'))) LAY.side = h.get('panel') === '1';
+}
+function applyLayout() {
+  stage.className = LAY.max ? 'L-max' : 'L-' + LAY.layout;
+  stage.querySelectorAll('.pane').forEach(p => {
+    const on = p.dataset.pane === LAY.max, b = p.querySelector('.pctl button');
+    p.classList.toggle('maxed', on);
+    b.innerHTML = on ? ICON_MIN : ICON_MAX; b.title = on ? 'Restore (Esc)' : `Maximize (${PANES.indexOf(p.dataset.pane) + 1})`;
+  });
+  document.querySelectorAll('#layout button').forEach(b => b.classList.toggle('on', !LAY.max && b.dataset.l === LAY.layout));
+  app.classList.toggle('noside', !LAY.side); document.getElementById('sideBtn').classList.toggle('on', LAY.side);
+  if (LAY.mprw) stage.style.setProperty('--mprw', LAY.mprw + 'px'); else stage.style.removeProperty('--mprw');
+  app.style.setProperty('--sidew', LAY.sidew + 'px');
+  const separator = document.getElementById('sideSplit');
+  separator.setAttribute('aria-valuemin', '230'); separator.setAttribute('aria-valuemax', '600');
+  separator.setAttribute('aria-valuenow', String(Math.round(Math.min(LAY.sidew, innerWidth * .45))));
+  applyPaneOrder();
+  store.set('layout', { layout: LAY.layout, side: LAY.side, mprw: LAY.mprw, sidew: LAY.sidew, order: LAY.order });
+  draw2D(); redraw();
+}
+function toggleMax(p) { LAY.max = LAY.max === p ? null : p; applyLayout(); }
+document.querySelectorAll('#layout button').forEach(b => b.onclick = () => { LAY.layout = b.dataset.l; LAY.max = null; applyLayout(); });
+document.getElementById('sideBtn').onclick = () => { LAY.side = !LAY.side; applyLayout(); };
+stage.querySelectorAll('.pane').forEach(p => {
+  p.querySelector('.pctl button').onclick = e => { e.stopPropagation(); toggleMax(p.dataset.pane); };
+  p.querySelector('canvas').addEventListener('dblclick', () => { if (S.tool === 'nav') toggleMax(p.dataset.pane); });
+});
+// divider between the 3D view and the slice column
+split.addEventListener('pointerdown', e => { split.setPointerCapture(e.pointerId); split.classList.add('drag'); e.preventDefault(); });
+split.addEventListener('pointermove', e => {
+  if (!split.classList.contains('drag')) return;
+  const r = stage.getBoundingClientRect();
+  LAY.mprw = Math.round(clamp(r.right - e.clientX, 160, r.width * 0.75));
+  stage.style.setProperty('--mprw', LAY.mprw + 'px'); draw2D(); redraw(true);
+});
+split.addEventListener('pointerup', () => { split.classList.remove('drag'); applyLayout(); });
+split.addEventListener('dblclick', () => { LAY.mprw = null; applyLayout(); });
+// Accordion and layout preferences contain no study or model data.
+const groups = [...document.querySelectorAll('.control-group')], savedGroups = store.get('groups') || {};
+for (const group of groups) {
+  if (typeof savedGroups[group.dataset.group] === 'boolean') group.open = savedGroups[group.dataset.group];
+  group.addEventListener('toggle', () => store.set('groups', Object.fromEntries(groups.map(g => [g.dataset.group, g.open]))));
+}
+const sideSplit = document.getElementById('sideSplit');
+sideSplit.onpointerdown = e => { sideSplit.focus(); sideSplit.setPointerCapture(e.pointerId); sideSplit.classList.add('drag'); e.preventDefault(); };
+sideSplit.onpointermove = e => {
+  if (!sideSplit.classList.contains('drag')) return;
+  LAY.sidew = Math.round(clamp(e.clientX - app.getBoundingClientRect().left, 230, Math.min(600, innerWidth * .45)));
+  app.style.setProperty('--sidew', LAY.sidew + 'px'); draw2D(); redraw(true);
+};
+for (const event of ['pointerup', 'pointercancel']) sideSplit.addEventListener(event, () => { sideSplit.classList.remove('drag'); applyLayout(); });
+sideSplit.ondblclick = () => { LAY.sidew = 300; applyLayout(); };
+sideSplit.onkeydown = e => { if (['ArrowLeft','ArrowRight'].includes(e.key)) { e.preventDefault(); LAY.sidew = clamp(LAY.sidew + (e.key === 'ArrowLeft' ? -20 : 20), 230, Math.min(600, innerWidth * .45)); applyLayout(); } };
+function applyPaneOrder() {
+  const [a,b,c] = LAY.order, mobile = matchMedia('(max-width: 900px)').matches;
+  stage.style.gridTemplateAreas = LAY.max ? '"m"' : LAY.layout === 'quad' ? `"d3 ${a}" "${b} ${c}"` : LAY.layout === 'row' ? (mobile ? `"${a}" "${b}" "${c}"` : `"${a} ${b} ${c}"`) : mobile ? `"d3 d3 d3" "${a} ${b} ${c}"` : `"d3 ${a}" "d3 ${b}" "d3 ${c}"`;
+  // Keep keyboard and reading order consistent with visual order.
+  for (const id of LAY.order) stage.appendChild(stage.querySelector(`[data-pane="${id}"]`));
+}
+function movePane(from, to) {
+  const order = [...LAY.order], i = order.indexOf(from), j = order.indexOf(to);
+  if (i < 0 || j < 0 || i === j) return;
+  order.splice(i, 1); order.splice(j, 0, from); LAY.order = order; applyLayout();
+}
+for (const grip of document.querySelectorAll('.pane-grip')) {
+  const pane = grip.closest('.pane'); let drop = null;
+  grip.onpointerdown = e => { grip.focus(); if (LAY.max) return; grip.setPointerCapture(e.pointerId); pane.classList.add('reordering'); e.preventDefault(); };
+  grip.onpointermove = e => {
+    if (!pane.classList.contains('reordering')) return;
+    drop = document.elementFromPoint(e.clientX, e.clientY)?.closest('.view');
+    document.querySelectorAll('.view').forEach(p => p.classList.toggle('drop-target', p === drop && p !== pane));
+  };
+  const finish = e => {
+    if (e.type === 'pointerup' && drop) movePane(pane.dataset.pane, drop.dataset.pane);
+    drop = null; document.querySelectorAll('.view').forEach(p => p.classList.remove('drop-target', 'reordering'));
+  };
+  grip.onpointerup = finish; grip.onpointercancel = finish;
+  grip.onkeydown = e => {
+    if (!['ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(e.key)) return;
+    e.preventDefault(); const i = LAY.order.indexOf(pane.dataset.pane), j = clamp(i + (['ArrowUp','ArrowLeft'].includes(e.key) ? -1 : 1), 0, 2);
+    movePane(pane.dataset.pane, LAY.order[j]); grip.focus();
+  };
+}
+// browser full screen
+const fsOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+const root = document.documentElement, canFS = !!(root.requestFullscreen || root.webkitRequestFullscreen);
+function toggleFS() {
+  if (!canFS) return;
+  if (fsOn()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else (root.requestFullscreen || root.webkitRequestFullscreen).call(root);
+}
+document.getElementById('fsBtn').onclick = toggleFS;
+if (!canFS) document.getElementById('fsBtn').style.display = 'none';
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange'])
+  document.addEventListener(ev, () => { document.getElementById('fsBtn').classList.toggle('on', fsOn()); draw2D(); redraw(); });
+// keys: 1-4 maximize a pane, Esc cancels a measurement or restores, F full screen, P panel
+window.addEventListener('keydown', e => {
+  if (document.getElementById('gemmaImageDialog').open) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key !== 'Escape' && e.target.closest && e.target.closest('select, textarea, input[type=text], input[type=number]')) return;
+  if (e.key === 'Escape') {
+    if (Clinician.hasStroke()) { Clinician.end(true); drag = null; drag2 = null; return; }
+    if (S.pend3 || drag2) { S.pend3 = null; drag2 = null; render3D(); draw2D(); }
+    else if (LAY.max) { LAY.max = null; applyLayout(); }
+    return;
+  }
+  const i = '1234'.indexOf(e.key);
+  if (i >= 0) toggleMax(PANES[i]);
+  else if (e.key === 'f' || e.key === 'F') toggleFS();
+  else if (e.key === 'p' || e.key === 'P') { LAY.side = !LAY.side; applyLayout(); }
+});
+if (window.ResizeObserver) new ResizeObserver(() => { draw2D(); redraw(); }).observe(stage);
+applyLayout();
+
+// ---------- load ----------
+async function unpack(id) {
+  const b64 = document.getElementById(id).textContent.trim();
+  const res = await fetch('data:application/octet-stream;base64,' + b64);
+  return new Uint8Array(await new Response(res.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+}
+(async () => {
+  try {
+    for (const v of META.vols) v.data = await unpack('d-' + v.key);
+    for (const k of AUX_KEYS) AUX[k] = { data: await unpack('d-' + k), dims: G2, f: 2 };
+    if (META.gt) document.getElementById('gtBtn').style.display = '';
+    S.cross = [Math.floor(W / 2) + Math.round(8 / SP1[0]), Math.floor(H / 2), Math.floor(D * 0.55)];
+    initGL();
+    await Clinician.init();
+    document.getElementById('loading').remove();
+    hud(); renderFindings(); renderMeas();
+    let emb = null; try { emb = JSON.parse(document.getElementById('annotations').textContent); } catch (e) {}
+    setAnnotations(emb);
+    S.gemma = JSON.parse(document.getElementById('medgemma').textContent); renderGemma();
+    { const ho = new URLSearchParams(location.hash.slice(1)).get('overlay'); if (['outlier', 'asym'].includes(ho) || (ho === 'gt' && META.gt)) setOv(ho); }
+    // The MCP service binds loopback. Published standalone viewers need no API calls.
+    if (location.protocol.startsWith('http') && ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) { poll(); setInterval(poll, 1500); }
+    draw2D(); render3D();
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Error: ' + err.message;
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>

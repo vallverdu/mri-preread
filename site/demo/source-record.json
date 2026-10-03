@@ -1,0 +1,25 @@
+{
+  "dataset": "ds007401",
+  "subject": "sub-4082",
+  "publisher_commit": "2e7f2573a5f8a9921cb19fca5e601bc141633f49",
+  "input_sha256": {
+    "t1": "838411f3596192c9c24f3cf171a6bbc9284d3e7c108abcdb49d3537ee13c2424",
+    "flair": "eef385a0599c2a7d58aac1f0f66df1b40071c2b3050e114004119e42d91ae197"
+  },
+  "license": "CC0-1.0",
+  "dataset_url": "https://openneuro.org/datasets/ds007401/versions/1.0.0",
+  "publisher_metadata": "https://github.com/OpenNeuroDatasets/ds007401/blob/2e7f2573a5f8a9921cb19fca5e601bc141633f49/dataset_description.json",
+  "modifications": [
+    "T1/FLAIR selection",
+    "canonical orientation and reference resampling",
+    "rigid sequence alignment",
+    "brain masking; outside-brain voxels removed",
+    "display windowing and uint8 packing",
+    "demonstration notes, measurements and manual masks in feature screenshots",
+    "actual MCP view_region montage, 100 mm field of view at reference voxel (86,94,84)",
+    "header reconstruction captured from the actual renderer with a white shader background and interface overlays hidden; image arrays unchanged",
+    "Interactive header exports only the prepared reference T1 as an anti-aliased 128-voxel maximum-axis preview with 64 intensity levels, preserving physical extent; no other sequences, reports, annotations or model output. Its ray marcher uses the actual viewer shader with a white background and grayscale cut faces."
+  ],
+  "private_scan_included": false,
+  "model_predictions_included": false
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mri-preread": {
+      "command": "/ABSOLUTE/PATH/TO/mri-preread/.venv/bin/mri-preread",
+      "args": ["serve", "/ABSOLUTE/PATH/TO/your-study-folder"]
+    }
+  }
+}

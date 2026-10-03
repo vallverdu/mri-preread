@@ -1,0 +1,23 @@
+name: Bug report
+description: Report a reproducible issue using synthetic data
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Use the synthetic demo or an artificial fixture. Never attach patient images, clinical notes, model reports containing medical data, credentials, or a private scan."
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduce with synthetic data
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS, browser, Python version and commit

@@ -1,0 +1,65 @@
+# ---- patient data: never commit ----
+data/
+studies/
+*.dcm
+*.DCM
+DICOMDIR
+*.nii
+*.nii.gz
+*.npz
+brain_viewer.html
+annotations.json
+findings.json
+worklist.sqlite3*
+
+# local config (contains absolute paths to your own study)
+.mcp.json
+
+# python / os
+.venv/
+models/
+.cache/
+medgemma-review*.json*
+medgemma-review*.html*
+medgemma-review*.assets/
+venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+.DS_Store
+
+# personal Claude context (private study details)
+CLAUDE.local.md
+
+# credentials, hospital exports and local review artifacts
+.env
+.env.*
+!.env.example
+.aws/
+*.p12
+*.pfx
+*.pem
+*.key
+*.safetensors
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+clinician-*.json
+*.zip
+*.npy
+*.nrrd
+*.mha
+*.mhd
+*.ima
+*.img
+*.hdr
+*.gguf
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.h5
+*.hdf5
+*.sqlite
+*.db

@@ -1,0 +1,29 @@
+{
+  "license": "Unsplash License",
+  "license_url": "https://unsplash.com/license",
+  "license_verified_on": "2026-10-02",
+  "modifications": "CDN resize to 1600 px wide and JPEG compression; CSS crop for responsive layout.",
+  "usage": "Illustrative stock photography; does not depict this application, its users or an endorsement.",
+  "photos": {
+    "assets/clinical-review.jpg": {
+      "photo_id": "5VkNa1LrS8A",
+      "photo_url": "https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A",
+      "photographer": "Accuray",
+      "photographer_url": "https://unsplash.com/@accuray",
+      "download_url": "https://images.unsplash.com/photo-1666214277657-e60f05c40b04?auto=format&fit=max&fm=jpg&q=82&w=1600",
+      "sha256": "5a7d22695e06abc90a4c5a2c7fe188b88ef9373612ba7fb170cf67ae3e307ea2",
+      "width": 1600,
+      "height": 1067
+    },
+    "assets/tablet-review.jpg": {
+      "photo_id": "8Ls2cnZwAaM",
+      "photo_url": "https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM",
+      "photographer": "Vitaly Gariev",
+      "photographer_url": "https://unsplash.com/@silverkblack",
+      "download_url": "https://images.unsplash.com/photo-1758691462774-f01ed567f2c4?auto=format&fit=max&fm=jpg&q=82&w=1600",
+      "sha256": "9cd2c3d96b118bb276c30676e330a74ec8a915cfd75416f56dbd7809df0e101d",
+      "width": 1600,
+      "height": 900
+    }
+  }
+}

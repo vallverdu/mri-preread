@@ -1,0 +1,41 @@
+{
+  "source": {
+    "dataset": "ds007401",
+    "subject": "sub-4082",
+    "publisher_commit": "2e7f2573a5f8a9921cb19fca5e601bc141633f49",
+    "input_sha256": {
+      "t1": "838411f3596192c9c24f3cf171a6bbc9284d3e7c108abcdb49d3537ee13c2424",
+      "flair": "eef385a0599c2a7d58aac1f0f66df1b40071c2b3050e114004119e42d91ae197"
+    },
+    "license": "CC0-1.0",
+    "dataset_url": "https://openneuro.org/datasets/ds007401/versions/1.0.0",
+    "publisher_metadata": "https://github.com/OpenNeuroDatasets/ds007401/blob/2e7f2573a5f8a9921cb19fca5e601bc141633f49/dataset_description.json",
+    "modifications": [
+      "T1/FLAIR selection",
+      "canonical orientation and reference resampling",
+      "rigid sequence alignment",
+      "brain masking; outside-brain voxels removed",
+      "display windowing and uint8 packing",
+      "demonstration notes, measurements and manual masks in feature screenshots",
+      "actual MCP view_region montage, 100 mm field of view at reference voxel (86,94,84)",
+      "header reconstruction captured from the actual renderer with a white shader background and interface overlays hidden; image arrays unchanged",
+      "Interactive header exports only the prepared reference T1 as an anti-aliased 128-voxel maximum-axis preview with 64 intensity levels, preserving physical extent; no other sequences, reports, annotations or model output. Its ray marcher uses the actual viewer shader with a white background and grayscale cut faces."
+    ],
+    "private_scan_included": false,
+    "model_predictions_included": false
+  },
+  "files": {
+    "demo/index.html": "0908b9c3794e4df275bc11a98b7525bef339f4cfa30c909358081a77406be21b",
+    "demo/source-record.json": "79d889c60a82dda20753e954dda53d4bc2f11320f80c27ccb06690f1b1514beb",
+    "assets/axial.png": "a554819fe350eed3ef00821bead196a6da585e52295ef7aa1d00b5374085612e",
+    "assets/coronal.png": "b3f558b4ed8007a69542826fe2d711bd6c0b89429e9cb0ae82849c0d3ab17e91",
+    "assets/sagittal.png": "dcadf1391212739ff78dc4301cb7dda2d6f301aaff0e0ea88d3b9b9454ffc117",
+    "assets/hero-volume.jpg": "123684b7520d43e849dc69844652b34827766cc93d3db28c0a8acf4c8c22fbbe",
+    "assets/hero-volume.json": "d78e1e5c65b28aad30a3d723d42cbb6ac47db1a44190509fabca054523232d46",
+    "assets/feature-views.jpg": "6586635216edb11c48e1f0e170baeff1c5a298639adce4d7923985a1204eb56a",
+    "assets/feature-measures.jpg": "05c5ff10d7482e5a48fe9079dea1c881bd0e21f989e4f39079d92d0dea2c1a81",
+    "assets/feature-notes.jpg": "a49511fc72e91be8934177b8741cd12f1fa9da5a7a87eb079b604a5a6a66ff9a",
+    "assets/feature-masks.jpg": "b3d3db3a27612987c2046336658a6d041cfc7993323a3e6978784ce140e6f053",
+    "assets/feature-mcp.png": "c897d8b53d9539838f330b63bf8474796be25d0efaf6ef6bb797d8e1f0ebdb02"
+  }
+}
