@@ -30,6 +30,7 @@ dist/
 .DS_Store
 
 # personal Claude context (private study details)
+CLAUDE.md
 CLAUDE.local.md
 
 # credentials, hospital exports and local review artifacts

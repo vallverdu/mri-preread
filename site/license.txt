@@ -1,0 +1,52 @@
+mri-preread website: image sources and licenses
+=============================================
+
+Application code
+----------------
+Copyright (c) 2026 Jordi Vallverdu. MIT License; see the repository LICENSE.
+The MIT license covers application code, not the separate image and model assets.
+
+Public MRI demonstration and feature images
+------------------------------------------
+OpenNeuro ds007401 / IDEAS II, subject sub-4082, session 1, T1w and FLAIR.
+Dataset: https://openneuro.org/datasets/ds007401/versions/1.0.0
+License: CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/
+Publisher metadata:
+https://github.com/OpenNeuroDatasets/ds007401/blob/2e7f2573a5f8a9921cb19fca5e601bc141633f49/dataset_description.json
+Reference: Taylor, Peter N., et al. The imaging database for epilepsy and surgery
+(IDEAS). Epilepsia 66.2 (2025): 471-481. https://doi.org/10.1111/epi.18192
+
+Files: demo/index.html, assets/hero-volume.jpg, assets/hero-volume.json,
+assets/feature-views.jpg, assets/feature-measures.jpg, assets/feature-notes.jpg,
+assets/feature-masks.jpg and assets/feature-mcp.png.
+Modifications: alignment, brain masking, display resampling, compression and
+viewer screenshots. Notes, measurements and masks are demonstration drawings,
+not expert lesion labels or AI findings. Dataset-author endorsement is not implied.
+Source and derivative checksums: demo/source-record.json and demo/artifacts.json.
+
+Stock photography
+-----------------
+Unsplash License: https://unsplash.com/license (reviewed 2 October 2026).
+Files resized to 1600 pixels wide, compressed as JPEG, and cropped by CSS.
+Illustrative photography; it does not depict this application or endorse it.
+
+assets/clinical-review.jpg
+Photographer: Accuray, https://unsplash.com/@accuray
+Source: https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A
+
+assets/tablet-review.jpg
+Photographer: Vitaly Gariev, https://unsplash.com/@silverkblack
+Source: https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM
+
+Exact image checksums and download records: assets/photo-credits.json.
+
+Owner-approved header
+---------------------
+Deployments may add the owner's MRI poster and simplified reference volume under
+separate permission. Their explicit notices are appended below when packaged.
+Those assets are excluded from the Git source history and source archive.
+
+Model weights
+-------------
+No model weights are included. MedGemma has separate HAI-DEF terms:
+https://developers.google.com/health-ai-developer-foundations/terms

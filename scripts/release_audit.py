@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BAD_EXT = ('.dcm', '.nii', '.nii.gz', '.npz', '.npy', '.nrrd', '.mha', '.mhd', '.ima', '.img', '.hdr',
            '.safetensors', '.gguf', '.pt', '.pth', '.ckpt', '.onnx', '.h5', '.hdf5', '.sqlite', '.sqlite3',
            '.sqlite3-wal', '.sqlite3-shm', '.db', '.pem', '.key', '.p12', '.pfx', '.zip')
-BAD_NAMES = {'.mcp.json', '.env', 'DICOMDIR', 'annotations.json', 'findings.json', 'brain_viewer.html', 'CLAUDE.local.md'}
+BAD_NAMES = {'.mcp.json', '.env', 'DICOMDIR', 'annotations.json', 'findings.json', 'brain_viewer.html', 'CLAUDE.md', 'CLAUDE.local.md'}
 SECRET_PATTERNS = [
     re.compile(rb'\b(?:AKIA|ASIA)[A-Z0-9]{16}\b'),
     re.compile(rb'\bgh[pousr]_[A-Za-z0-9]{30,}\b'),

@@ -29,8 +29,27 @@ jobs:
         run: python3 scripts/release_audit.py
       - name: Check website
         run: python3 scripts/check_site.py
-      - name: Package reviewed public assets
-        run: python3 scripts/package_site.py --output dist/github-pages
+      - name: Download owner-approved header previews
+        if: vars.MRI_OWNER_HEADER_RELEASE != ''
+        env:
+          MRI_HEADER_RELEASE: ${{ vars.MRI_OWNER_HEADER_RELEASE }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$MRI_HEADER_RELEASE" --repo "$GITHUB_REPOSITORY" \
+            --dir data/website-header \
+            --pattern owner-volume-header.jpg --pattern owner-hero-volume.json
+          sha256sum --check site/owner-header.sha256
+      - name: Package website
+        env:
+          MRI_HEADER_RELEASE: ${{ vars.MRI_OWNER_HEADER_RELEASE }}
+        run: |
+          if [ -n "$MRI_HEADER_RELEASE" ]; then
+            python3 scripts/package_site.py --output dist/github-pages \
+              --header-image data/website-header/owner-volume-header.jpg \
+              --hero-volume data/website-header/owner-hero-volume.json
+          else
+            python3 scripts/package_site.py --output dist/github-pages
+          fi
       - name: Check packaged website
         run: python3 scripts/check_site.py --site dist/github-pages
       - name: Configure Pages

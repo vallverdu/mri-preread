@@ -31,14 +31,14 @@ on white, with interface overlays hidden. Its appearance comes directly from the
 generative image model changed the anatomy. The shader background for this capture is `vec3(1.0)`
 instead of the dark gradient. Camera framing and the white matte are presentation changes only.
 
-The optional interactive header uses `site/assets/hero-volume.json`, derived from the reference
+The source preview header uses `site/assets/hero-volume.json`, derived from the reference
 T1 array embedded in the public viewer. Its preview is anti-aliased and resampled to a maximum axis of
 128 voxels, with 64 intensity levels in the same uint8 texture format. The download is about 390 KB
 (formerly 1.63 MB); the full viewer's images remain unchanged. It contains only display voxels, physical spacing, dimensions
-and rendering settings. It loads after **Explore in 3D**, keeps a static-image fallback, and supports
-rotation, zoom and independent cuts on three axes. The camera math and ray-marching shader in
-`site/hero-renderer.js` are generated from `viewer_template.html`, with only the background set to white.
-Cut faces use the viewer's grayscale MRI window. This is an overview, not a replacement for full slice
+and rendering settings. It loads automatically behind a static-image fallback, and supports
+rotation, zoom and an animated front-to-back cut with mouse-wheel depth control. The camera math and ray-marching shader in
+`site/hero-renderer.js` are generated from `viewer_template.html`, with a white background and broader lighting normals for the simplified grid.
+Cuts retain volume rendering instead of switching to a surface. This is an overview, not a replacement for full slice
 review. Its checksum is recorded alongside the other reviewed public derivatives.
 
 The public demo establishes usability, not diagnostic accuracy. It is separate from the ignored

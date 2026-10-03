@@ -25,7 +25,10 @@ explains model-host choices, the bundled backend and the limits of the tested la
 
 The [product website](site/index.html) includes an image-first interactive MRI header, a
 [real public MRI viewer](site/demo/index.html) and
-actual feature screenshots derived from CC0 OpenNeuro data. Private scans are excluded. To preview:
+actual feature screenshots derived from CC0 OpenNeuro data. Original private studies and reports are
+excluded from source. The deployment can use an owner-approved MRI poster and simplified volume
+from a separate website-assets release, with explicit publication approval. Image-first background loading, an automatic front-to-back
+cut and mouse-wheel depth control demonstrate volume interaction. To preview the public source:
 
 ```bash
 git clone https://github.com/vallverdu/mri-preread.git

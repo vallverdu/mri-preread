@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { gzipSync } = require('node:zlib');
 const { createHash, webcrypto } = require('node:crypto');
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
-const { validate, clipBounds, rotate, initialState, decode, readLimited } = require('../site/hero-volume.js');
+const { validate, clipBounds, rotate, initialState, scrollCut, advanceSweep, decode, readLimited } = require('../site/hero-volume.js');
 const { M } = require('../site/hero-renderer.js');
 const raw = Buffer.from([0, 20, 40, 80, 120, 180, 220, 255]);
 const payload = { format: 'mri-hero-volume-v1', dims: [2,2,2], spacing_mm: [1,2,3], sequence: 't1',
@@ -43,4 +43,24 @@ test('network/decompression streams are cancelled when their bound is exceeded',
   const stream = new ReadableStream({start(c){c.enqueue(new Uint8Array(11));},cancel(){cancelled=true;}});
   await assert.rejects(readLimited(stream,10), /size limit/);
   assert.equal(cancelled,true);
+});
+
+
+test('wheel input moves only the depth cut with consistent pixel, line and page units', () => {
+  assert.equal(scrollCut(30, 100), 34.5);
+  assert.equal(scrollCut(30, 1, 1), scrollCut(30, 16));
+  assert.equal(scrollCut(30, 1, 2, 400), scrollCut(30, 400));
+  assert.equal(scrollCut(1, -100), 0);
+  assert.equal(scrollCut(80, 1000), 85);
+});
+test('the sweep crosses front to back and reverses without skipping past the bounds', () => {
+  const front = advanceSweep(0, 1, 100);
+  assert.ok(front.cut > 0); assert.equal(front.direction, 1);
+  const back = advanceSweep(84.9, 1, 100);
+  assert.ok(back.cut < 85); assert.equal(back.direction, -1);
+  const returning = advanceSweep(20, -1, 100);
+  assert.ok(returning.cut < 20); assert.equal(returning.direction, -1);
+  const bounced = advanceSweep(.1, -1, 100);
+  assert.ok(bounced.cut > 0); assert.equal(bounced.direction, 1);
+  assert.ok(advanceSweep(10, 1, 60000).cut < 12); // Background tab cannot skip the scan.
 });

@@ -10,23 +10,21 @@ from build_hero_volume import validate_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / 'site'
-FILES = ['index.html', 'integrate.html', 'styles.css', 'site.js', 'site-config.js', 'hero-volume.js', 'hero-renderer.js',
+FILES = ['index.html', 'integrate.html', 'license.txt', 'styles.css', 'site.js', 'site-config.js', 'hero-volume.js', 'hero-renderer.js',
          'assets/icon.svg', 'demo/artifacts.json', *ARTIFACTS, *PHOTO_FILES]
 HEADER_ASSET = 'assets/owner-volume-header.jpg'
 VOLUME_ASSET = 'assets/owner-hero-volume.json'
 PUBLIC_VOLUME = 'data-volume="assets/hero-volume.json?v=preview-128-6"'
 PUBLIC_HEADER = '<img id="heroImage" src="assets/hero-volume.jpg"'
-PUBLIC_CREDIT = '<span id="heroSource">Viewer capture · Public OpenNeuro MRI · CC0</span>'
-OWNER_CREDIT = '<span id="heroSource">Viewer capture · Owner-provided MRI study</span>'
-OWNER_NOTICE = ('<p id="headerImageNotice">The homepage header includes an owner-provided MRI '
-                'capture, used with permission for this website. That image is separate from the '
-                'CC0 research demonstration and is not covered by the application\'s MIT license. '
-                'It is excluded from the public source release.</p>')
-OWNER_VOLUME_NOTICE = ('<p id="headerVolumeNotice">The interactive header also downloads an '
-                       'owner-provided display-resolution MRI reference volume when activated. '
-                       'It is private imaging data, included with permission for this website only, '
-                       'separate from MIT and CC0 and excluded from public source. '
-                       'The volume export contains no reports, patient metadata or annotations.</p>')
+OWNER_NOTICE = ('Owner-provided MRI header image: assets/owner-volume-header.jpg. '
+                'Copyright Jordi Vallverdu, used with the owner\'s permission for this website. '
+                'Separate from the CC0 research demonstration and the application\'s MIT license. '
+                'Not included in the source tree; no general redistribution license is granted.')
+OWNER_VOLUME_NOTICE = ('Owner-provided MRI preview: assets/owner-hero-volume.json. '
+                       'Copyright Jordi Vallverdu, used with permission for this website, '
+                       'including automatic background loading. Separate from MIT and CC0; '
+                       'not included in the source tree. Only display-resolution reference voxels '
+                       'are included; no reports, identifying metadata or annotations.')
 
 
 def package(output, header_image=None, hero_volume=None):
@@ -40,7 +38,6 @@ def package(output, header_image=None, hero_volume=None):
     header_bytes = None
     volume_bytes = None
     index = (SITE / 'index.html').read_text()
-    guide = (SITE / 'integrate.html').read_text()
     if hero_volume is not None:
         if header_image is None:
             raise ValueError('An owner volume needs a matching owner header image')
@@ -58,18 +55,15 @@ def package(output, header_image=None, hero_volume=None):
         header_bytes = image.read_bytes()
         if not header_bytes.startswith(b'\xff\xd8\xff') or not header_bytes.endswith(b'\xff\xd9'):
             raise ValueError('Header image must be JPEG; HTML and study files are not accepted')
-        if index.count(PUBLIC_HEADER) != 1 or index.count(PUBLIC_CREDIT) != 1 or guide.count('<section id="license">') != 1:
+        if index.count(PUBLIC_HEADER) != 1:
             raise ValueError('Header or license markup changed; review the website-only substitution')
         index = index.replace(PUBLIC_HEADER, f'<img id="heroImage" src="{HEADER_ASSET}?v={hashlib.sha256(header_bytes).hexdigest()[:12]}"')
-        index = index.replace(PUBLIC_CREDIT, OWNER_CREDIT)
-        guide = guide.replace('<section id="license">', '<section id="license">' + OWNER_NOTICE)
         if volume_bytes is not None:
             index = index.replace(PUBLIC_VOLUME, f'data-volume="{VOLUME_ASSET}?v={hashlib.sha256(volume_bytes).hexdigest()[:12]}"')
-            guide = guide.replace('<section id="license">', '<section id="license">' + OWNER_VOLUME_NOTICE)
         else:
             # A private poster must never silently switch to a different, public patient's volume.
             index = index.replace(PUBLIC_VOLUME, 'data-volume=""')
-            index = index.replace('Interactive MRI overview · Load on demand', 'Owner-provided MRI capture')
+            index = index.replace('Loading the interactive MRI volume…', 'MRI image preview')
     manifest = {'private_patient_data_included': header_bytes is not None,
                 'raw_patient_data_included': False, 'model_weights_included': False,
                 'private_display_volume_included': volume_bytes is not None,
@@ -88,7 +82,10 @@ def package(output, header_image=None, hero_volume=None):
         (out / HEADER_ASSET).parent.mkdir(parents=True, exist_ok=True)
         (out / HEADER_ASSET).write_bytes(header_bytes)
         (out / 'index.html').write_text(index)
-        (out / 'integrate.html').write_text(guide)
+        with (out / 'license.txt').open('a') as licenses:
+            licenses.write('\n\n' + OWNER_NOTICE + '\n')
+            if volume_bytes is not None:
+                licenses.write('\n' + OWNER_VOLUME_NOTICE + '\n')
         manifest['owner_header_image'] = {'file': HEADER_ASSET,
             'license': 'Owner permission for this website; separate from MIT and CC0',
             'public_source_included': False}

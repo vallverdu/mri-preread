@@ -44,7 +44,7 @@ float samp(vec3 w){ vec3 t = tc(w); float s = texture(uVol, t).r; if (uBrain) s 
 float sampO(vec3 w){ return texture(uOv, tc(w)).r; }
 float sampS(vec3 w){ return texture(uSeq, tc(w)).r; }   // selected sequence (cut faces)
 vec3 grad(vec3 w){
-  vec3 e = uVox * 2.0 * uHalf;
+  vec3 e = uVox * 6.0 * uHalf;
   return vec3(samp(w+vec3(e.x,0,0))-samp(w-vec3(e.x,0,0)), samp(w+vec3(0,e.y,0))-samp(w-vec3(0,e.y,0)), samp(w+vec3(0,0,e.z))-samp(w-vec3(0,0,e.z))) / e;
 }
 vec3 gradO(vec3 w){

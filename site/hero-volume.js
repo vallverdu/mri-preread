@@ -1,4 +1,4 @@
-/* An optional, on-demand MRI overview. No model, report or patient API requests. */
+/* An image-first MRI volume overview. No model, report or patient API requests. */
 (function (root) {
 'use strict';
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -22,6 +22,15 @@ function clipBounds(cuts) {
 function initialState() { return { yaw: Math.PI / 2 + .75, pitch: .3, dist: 1.88, cuts: [0, 0, 0] }; }
 function rotate(state, dx, dy) {
   return { ...state, yaw: state.yaw - dx * .008, pitch: clamp(state.pitch + dy * .008, -1.45, 1.45) };
+}
+function scrollCut(cut, delta, mode = 0, height = 600) {
+  const pixels = delta * (mode === 1 ? 16 : mode === 2 ? height : 1);
+  return clamp(cut + pixels * .045, 0, 85);
+}
+function advanceSweep(cut, direction, elapsed) {
+  // Reflect at either end, including after a delayed frame; never jump outside the scan.
+  const phase = ((direction < 0 ? 170 - cut : cut) + clamp(elapsed, 0, 250) * .006) % 170;
+  return { cut: phase <= 85 ? phase : 170 - phase, direction: phase < 85 ? 1 : -1 };
 }
 // A bounded read also protects browsers when a static export is malformed.
 async function readLimited(stream, limit) {
@@ -117,8 +126,8 @@ function renderer(canvas, data, voxels, core, onError) {
       const bounds = clipBounds(state.cuts);
       gl.uniformMatrix4fv(U.uInvVP, false, core.M.inv(vp)); gl.uniform3fv(U.uCam, eye);
       gl.uniform3fv(U.uCMin, bounds.min); gl.uniform3fv(U.uCMax, bounds.max);
-      // Solid grayscale cut faces use the full viewer's surface ray marcher.
-      gl.uniform1i(U.uMode, state.cuts.some(n => n > 0) || data.appearance === 'surface' ? 0 : 1);
+      // Keep the volume transfer function while cutting, rather than switching to a surface.
+      gl.uniform1i(U.uMode, 1);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       if (gl.getError() !== gl.NO_ERROR) throw Error('MRI rendering failed');
     }
@@ -137,70 +146,93 @@ function renderer(canvas, data, voxels, core, onError) {
 }
 
 function mount(figure) {
-  const button = figure.querySelector('#heroActivate'), status = figure.querySelector('#heroStatus');
-  const canvas = figure.querySelector('canvas'), controls = figure.querySelector('fieldset');
+  const status = figure.querySelector('#heroStatus'), canvas = figure.querySelector('canvas');
+  const controls = figure.querySelector('fieldset'), slider = figure.querySelector('#heroCutY');
+  const play = figure.querySelector('#heroPlay'), motion = root.matchMedia('(prefers-reduced-motion: reduce)');
   if (!figure.dataset.volume) return;
   if (!root.WebGL2RenderingContext || !root.DecompressionStream || !root.fetch || !['http:', 'https:'].includes(root.location.protocol)) {
-    status.textContent = 'MRI volume preview · Open the full viewer for more tools'; return;
+    status.textContent = 'MRI preview · Open the full viewer for more tools'; return;
   }
-  button.hidden = false;
-  let loading = false, active = false, engine = null, cached = null, state = initialState(), pointer = null;
+  let engine = null, state = initialState(), pointer = null, inView = true, ended = false;
+  let loadController = null, generation = 0;
+  let playing = !motion.matches, direction = 1, timer = null, previous = null;
   const sameOrigin = path => {
     const url = new URL(path, root.location.href);
     if (url.origin !== root.location.origin || !['http:', 'https:'].includes(url.protocol)) throw Error('Use a local static web server');
     return url.href;
   };
-  let scriptPromise;
-  const loadRenderer = () => {
-    if (root.MriHeroRenderer) return Promise.resolve(root.MriHeroRenderer);
-    if (!scriptPromise) scriptPromise = new Promise((resolve, reject) => {
-      const script = root.document.createElement('script'); script.src = sameOrigin(figure.dataset.renderer);
-      const fail = () => { clearTimeout(deadline); script.remove(); scriptPromise = null; reject(Error('Renderer download failed')); };
-      const deadline = setTimeout(fail, 30000);
-      script.onload = () => { clearTimeout(deadline); if (root.MriHeroRenderer) resolve(root.MriHeroRenderer); else fail(); };
-      script.onerror = fail;
-      root.document.head.append(script);
-    });
-    return scriptPromise;
-  };
-  function poster(message = 'Interactive MRI overview · Load on demand') {
-    active = false; pointer = null; engine?.destroy(); engine = null;
-    figure.classList.remove('is-ready'); controls.hidden = true; controls.disabled = true; canvas.hidden = true;
-    button.textContent = 'Explore in 3D'; button.setAttribute('aria-pressed', 'false'); status.textContent = message;
+  function stopTimer() { clearTimeout(timer); timer = null; previous = null; }
+  function updateControls() {
+    slider.value = String(Math.round(state.cuts[1]));
+    slider.nextElementSibling.value = Math.round(state.cuts[1]) + '%';
+    play.textContent = playing ? 'Pause' : 'Play';
+    play.setAttribute('aria-label', playing ? 'Pause front-to-back animation' : 'Play front-to-back animation');
+    play.setAttribute('aria-pressed', String(playing));
   }
-  button.addEventListener('click', async () => {
-    if (loading) return;
-    if (active) { poster(); return; }
-    loading = true; button.disabled = true; button.textContent = 'Loading MRI…'; status.textContent = 'Loading the display volume…';
+  function schedule() {
+    stopTimer();
+    if (engine && playing && inView && !root.document.hidden && !ended) timer = setTimeout(tick, 100);
+  }
+  function tick() {
+    timer = null;
+    if (!engine || !playing || !inView || root.document.hidden || ended) return;
+    const now = root.performance.now();
+    const next = advanceSweep(state.cuts[1], direction, previous === null ? 0 : now - previous);
+    previous = now; direction = next.direction; state.cuts[1] = next.cut;
+    updateControls(); engine.setState(state, true); timer = setTimeout(tick, 100);
+  }
+  function pause() { playing = false; stopTimer(); updateControls(); }
+  function poster(message) {
+    stopTimer(); engine?.destroy(); engine = null; pointer = null;
+    figure.classList.remove('is-ready'); controls.hidden = true; controls.disabled = true; canvas.hidden = true;
+    status.textContent = message;
+  }
+  async function load() {
+    const run = ++generation;
     figure.setAttribute('aria-busy', 'true');
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 30000);
+    loadController = controller;
+    let script;
     try {
+      const loadCore = () => {
+        if (root.MriHeroRenderer) return Promise.resolve(root.MriHeroRenderer);
+        return new Promise((resolve, reject) => {
+          script = root.document.createElement('script'); script.src = sameOrigin(figure.dataset.renderer);
+          script.onload = () => root.MriHeroRenderer ? resolve(root.MriHeroRenderer) : reject(Error('Renderer unavailable'));
+          script.onerror = () => reject(Error('Renderer download failed'));
+          controller.signal.addEventListener('abort', () => reject(Error('Renderer timeout')), { once: true });
+          root.document.head.append(script);
+        });
+      };
       const loadData = async () => {
-        if (cached) return cached;
         const response = await root.fetch(sameOrigin(figure.dataset.volume), { signal: controller.signal, credentials: 'omit' });
         if (!response.ok || !response.body) throw Error('MRI download failed');
         const bytes = await readLimited(response.body, 8000000);
         const data = JSON.parse(new TextDecoder().decode(bytes));
-        cached = { data, voxels: await decode(data) };
-        return cached;
+        return { data, voxels: await decode(data) };
       };
-      const [core] = await Promise.all([loadRenderer(), loadData()]);
-      canvas.hidden = false; state = initialState();
-      engine = renderer(canvas, cached.data, cached.voxels, core, () => poster('3D unavailable. The MRI image remains available.'));
-      for (const slider of controls.querySelectorAll('[data-axis]')) { slider.value = '0'; slider.nextElementSibling.value = '0%'; }
-      controls.hidden = false; controls.disabled = false; active = true;
-      figure.classList.add('is-ready'); button.textContent = 'Show image'; button.setAttribute('aria-pressed', 'true');
-      status.textContent = 'Drag to rotate · Display-resolution MRI';
+      const [core, { data, voxels }] = await Promise.all([loadCore(), loadData()]);
+      if (ended || run !== generation) return;
+      canvas.hidden = false;
+      engine = renderer(canvas, data, voxels, core, () => poster('MRI image preview · 3D is unavailable'));
+      controls.hidden = false; controls.disabled = false;
+      figure.classList.add('is-ready');
+      status.textContent = 'Scroll over the head to move front to back · Drag to rotate';
+      updateControls(); engine.setVisible(inView);
+      // Show the complete volume briefly before demonstrating the coronal cut.
+      if (playing && inView && !root.document.hidden) timer = setTimeout(tick, 1800);
     } catch {
-      poster('3D unavailable. The MRI image remains available.'); button.textContent = 'Retry 3D';
+      controller.abort(); script?.remove();
+      if (run === generation) poster('MRI image preview · 3D is unavailable');
     } finally {
-      clearTimeout(timeout); loading = false; button.disabled = false; figure.removeAttribute('aria-busy');
+      clearTimeout(timeout);
+      if (run === generation) { loadController = null; figure.removeAttribute('aria-busy'); }
     }
-  });
-  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); poster('3D paused by your browser. Reload 3D to continue.'); });
+  }
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); poster('MRI image preview · 3D is paused by your browser'); });
   canvas.addEventListener('pointerdown', e => {
-    if (!active || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    pointer = { id: e.pointerId, x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId);
+    if (!engine || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    pause(); pointer = { id: e.pointerId, x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', e => {
     if (!pointer || e.pointerId !== pointer.id) return;
@@ -208,32 +240,54 @@ function mount(figure) {
     pointer.x = e.clientX; pointer.y = e.clientY; engine?.setState(state, true);
   });
   for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(event, () => { pointer = null; });
+  canvas.addEventListener('wheel', e => {
+    if (!engine || e.ctrlKey || e.metaKey || !e.deltaY) return;
+    e.preventDefault(); pause();
+    state.cuts[1] = scrollCut(state.cuts[1], e.deltaY, e.deltaMode, canvas.clientHeight);
+    updateControls(); engine.setState(state, true);
+  }, { passive: false });
   canvas.addEventListener('keydown', e => {
-    if (!active || e.altKey || e.ctrlKey || e.metaKey || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '-', '=', 'Home'].includes(e.key)) return;
+    if (!engine || e.altKey || e.ctrlKey || e.metaKey || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '-', '=', 'Home', ' '].includes(e.key)) return;
     e.preventDefault();
+    if (e.key === ' ') { toggle(); return; }
+    pause();
     if (e.key === 'Home') reset();
     else if (['+', '=', '-'].includes(e.key)) zoom(e.key === '-' ? 1.12 : .88);
-    else { state = rotate(state, e.key === 'ArrowRight' ? 12 : e.key === 'ArrowLeft' ? -12 : 0, e.key === 'ArrowDown' ? 12 : e.key === 'ArrowUp' ? -12 : 0); engine.setState(state, true); }
+    else if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+      state.cuts[1] = clamp(state.cuts[1] + (e.key === 'ArrowDown' ? 3 : -3), 0, 85);
+      updateControls(); engine.setState(state, true);
+    } else { state = rotate(state, e.key === 'ArrowRight' ? 12 : -12, 0); engine.setState(state, true); }
   });
-  for (const slider of controls.querySelectorAll('[data-axis]')) slider.addEventListener('input', () => {
-    state.cuts[Number(slider.dataset.axis)] = Number(slider.value);
-    slider.nextElementSibling.value = slider.value + '%'; engine?.setState(state, true);
+  slider.addEventListener('input', () => {
+    pause(); state.cuts[1] = Number(slider.value); updateControls(); engine?.setState(state, true);
   });
   function zoom(factor) { state.dist = clamp(state.dist * factor, .9, 3.5); engine?.setState(state, true); }
-  function reset() {
-    state = initialState();
-    for (const slider of controls.querySelectorAll('[data-axis]')) { slider.value = '0'; slider.nextElementSibling.value = '0%'; }
-    engine?.setState(state);
+  function reset() { pause(); state = initialState(); direction = 1; updateControls(); engine?.setState(state); }
+  function toggle() {
+    if (!engine) return;
+    playing = !playing;
+    if (playing && state.cuts[1] > 75) direction = -1;
+    updateControls(); schedule();
   }
+  play.addEventListener('click', toggle);
   figure.querySelector('#heroReset').addEventListener('click', reset);
-  for (const b of figure.querySelectorAll('[data-zoom]')) b.addEventListener('click', () => zoom(Number(b.dataset.zoom)));
+  motion.addEventListener('change', () => { if (motion.matches) pause(); });
   if (root.ResizeObserver) new ResizeObserver(() => engine?.request()).observe(canvas);
-  if (root.IntersectionObserver) new IntersectionObserver(entries => engine?.setVisible(entries[0].isIntersecting)).observe(figure);
-  root.document.addEventListener('visibilitychange', () => { if (!root.document.hidden) engine?.request(); });
-  root.addEventListener('pagehide', () => { poster(); cached = null; });
+  if (root.IntersectionObserver) new IntersectionObserver(entries => {
+    inView = entries[0].isIntersecting; engine?.setVisible(inView); schedule();
+  }).observe(figure);
+  root.document.addEventListener('visibilitychange', () => {
+    if (!root.document.hidden) engine?.request(); schedule();
+  });
+  root.addEventListener('pagehide', () => {
+    ended = true; generation++; loadController?.abort(); loadController = null;
+    figure.removeAttribute('aria-busy'); poster('MRI image preview');
+  });
+  root.addEventListener('pageshow', e => { if (e.persisted) { ended = false; load(); } });
+  load();
 }
 
-const api = { validate, clipBounds, initialState, rotate, readLimited, decode };
+const api = { validate, clipBounds, initialState, rotate, scrollCut, advanceSweep, readLimited, decode };
 if (typeof module === 'object' && module.exports) module.exports = api;
 else if (root.document) { const figure = root.document.querySelector('.hero-viewer'); if (figure) mount(figure); }
 })(typeof window === 'object' ? window : globalThis);
