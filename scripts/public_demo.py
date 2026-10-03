@@ -17,6 +17,8 @@ ARTIFACTS = (
     'assets/axial.png', 'assets/coronal.png', 'assets/sagittal.png', 'assets/hero-volume.jpg', 'assets/hero-volume.json',
     'assets/feature-views.jpg', 'assets/feature-measures.jpg',
     'assets/feature-notes.jpg', 'assets/feature-masks.jpg', 'assets/feature-mcp.png',
+    'assets/feature-views-detail.svg', 'assets/feature-measures-detail.svg',
+    'assets/feature-notes-detail.svg', 'assets/feature-masks-detail.svg',
 )
 
 

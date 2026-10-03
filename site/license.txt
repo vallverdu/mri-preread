@@ -18,27 +18,28 @@ Reference: Taylor, Peter N., et al. The imaging database for epilepsy and surger
 
 Files: demo/index.html, assets/hero-volume.jpg, assets/hero-volume.json,
 assets/feature-views.jpg, assets/feature-measures.jpg, assets/feature-notes.jpg,
-assets/feature-masks.jpg and assets/feature-mcp.png.
+assets/feature-masks.jpg, assets/feature-mcp.png and assets/feature-*-detail.svg.
 Modifications: alignment, brain masking, display resampling, compression and
-viewer screenshots. Notes, measurements and masks are demonstration drawings,
+viewer screenshots and close-up framing of unchanged screenshots. Notes, measurements and masks are demonstration drawings,
 not expert lesion labels or AI findings. Dataset-author endorsement is not implied.
 Source and derivative checksums: demo/source-record.json and demo/artifacts.json.
 
-Stock photography
------------------
+AI-generated clinical illustrations
+-----------------------------------
+Files: assets/clinical-review.jpg and assets/tablet-review.jpg.
+Created 3 October 2026 with OpenAI's built-in image_gen tool; distributed under
+the repository's MIT License. These depict fictional clinicians and settings,
+not actual customers, hospital deployments or endorsements. The public viewer
+screenshot supplied the screen reference. No private MRI was supplied.
+Generation prompts, reference hashes and output hashes: assets/photo-credits.json.
+
+Composition reference photographs (originals are not in the current website):
 Unsplash License: https://unsplash.com/license (reviewed 2 October 2026).
-Files resized to 1600 pixels wide, compressed as JPEG, and cropped by CSS.
-Illustrative photography; it does not depict this application or endorse it.
-
-assets/clinical-review.jpg
-Photographer: Accuray, https://unsplash.com/@accuray
-Source: https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A
-
-assets/tablet-review.jpg
-Photographer: Vitaly Gariev, https://unsplash.com/@silverkblack
-Source: https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM
-
-Exact image checksums and download records: assets/photo-credits.json.
+Accuray: https://unsplash.com/@accuray
+https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A
+Vitaly Gariev: https://unsplash.com/@silverkblack
+https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM
+Their original licenses remain separate from the application MIT license.
 
 Owner-approved header
 ---------------------

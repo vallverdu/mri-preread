@@ -23,7 +23,9 @@ Brain masking is not a general anonymization guarantee for arbitrary institution
 The axial/coronal/sagittal previews preserve physical aspect and use a 30 mm scale. The four feature
 screenshots capture actual app operations: linked views, a ruler and ROI, a written note, and a manual
 3D brush mask checked across slices. These demonstration drawings are **not lesion labels, an expert
-reference or model predictions**. The MCP illustration is an actual `view_region` result. No AI report
+reference or model predictions**. The homepage uses self-contained SVG close-ups of those same
+unchanged screenshots; reproduce them with `python3 scripts/build_feature_details.py`.
+The MCP illustration is an actual `view_region` result. No AI report
 is embedded in the public viewer; statistical candidates come from the preparation algorithm.
 
 The header asset (`site/assets/hero-volume.jpg`) is a capture of the same public MRI reconstruction

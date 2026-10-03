@@ -26,20 +26,21 @@ Google MedGemma weights have separate [Health AI Developer Foundations terms](ht
 The application MIT license does not relicense those weights, including community conversions.
 Review the chosen model and runtime's terms before deployment.
 
-## Website photography
+## Website clinical illustrations
 
-Two illustrative photographs are included under the [Unsplash License](https://unsplash.com/license),
-verified on their individual photo pages on 2 October 2026:
+The tablet and consultation-room images are generated illustrations of fictional clinicians,
+created with OpenAI's built-in image_gen tool on 3 October 2026 and distributed under MIT.
+They use the approved public viewer capture as a screen reference; no private MRI was supplied.
+They do not document a real deployment, represent clinical evidence, or imply endorsement.
 
-- `site/assets/clinical-review.jpg`: [Accuray](https://unsplash.com/@accuray),
-  [medical professionals reviewing a brain scan](https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A).
-- `site/assets/tablet-review.jpg`: [Vitaly Gariev](https://unsplash.com/@silverkblack),
-  [doctor showing a brain scan on a tablet](https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM).
+Composition references were previously reviewed photographs under the
+[Unsplash License](https://unsplash.com/license), verified on 2 October 2026:
+[Accuray's workstation scene](https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A)
+and [Vitaly Gariev's tablet scene](https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM).
+The original photos are not shipped in the current website; their source records and original
+hashes are retained in [photo-credits.json](site/assets/photo-credits.json). Their historical
+versions retain the original Unsplash license.
 
-These photos are not MIT or CC0. The Unsplash license permits free commercial/non-commercial use and
-distribution, with restrictions on unmodified image sales and competing image services. Photographer
-credits are included voluntarily. The website license link supplies the full terms.
-
-The CDN supplied 1600 px JPEG versions; CSS may crop their presentation. They illustrate medical
-review settings and do not depict this application, existing customers, partners or endorsements.
-They are not model/evaluation inputs. See [source and checksum records](site/assets/photo-credits.json).
+See [generation prompts and reproduction](docs/website-photos.md) and the
+[website license file](site/license.txt). Actual feature screenshots and their close-up SVG
+derivatives retain the CC0 MRI provenance above; their anatomy was not generated.

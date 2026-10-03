@@ -40,8 +40,9 @@ Open `http://127.0.0.1:8080/`. The demo has the full viewer, measurement, clinic
 Example drawings are not clinical labels or AI predictions. See [dataset credits and reproduction](docs/open-demo.md)
 and [third-party notices](THIRD_PARTY_NOTICES.md). Follow [public-release.md](docs/public-release.md) before
 publishing source, and [CONTRIBUTING.md](CONTRIBUTING.md) to contribute. The MIT license covers the
-application; model weights have separate terms. The [website photographs](docs/website-photos.md) use
-their separate Unsplash license.
+application and generated clinical illustrations; model weights have separate terms. The
+[website imagery documentation](docs/website-photos.md) records the AI prompts, composition references
+and the unchanged public MRI captures used for feature close-ups.
 
 **Anatomical scope:** the current preparation, brain masking, hemispheric asymmetry and candidate rules
 are brain-specific. Other organs can have different geometry and normal asymmetry. This is not a

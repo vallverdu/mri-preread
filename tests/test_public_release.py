@@ -24,7 +24,7 @@ class PublicReleaseTests(unittest.TestCase):
             shutil.copyfile(source / name, path)
         return root / 'site'
 
-    def test_reviewed_stock_photos_are_allowed_but_replacement_images_are_rejected(self):
+    def test_reviewed_illustrations_are_allowed_but_replacement_images_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             site = self.photo_fixture(root)
@@ -39,7 +39,7 @@ class PublicReleaseTests(unittest.TestCase):
             credits.write_text(json.dumps(record))
             self.assertTrue(validate_photos(site))
 
-    def test_stock_photo_credits_cannot_be_missing_or_relicensed(self):
+    def test_illustration_records_cannot_be_missing_or_relicensed(self):
         with tempfile.TemporaryDirectory() as directory:
             site = self.photo_fixture(Path(directory))
             credits = site / 'assets/photo-credits.json'
@@ -47,7 +47,7 @@ class PublicReleaseTests(unittest.TestCase):
             credits.unlink()
             self.assertTrue(validate_photos(site))
             record = json.loads(original)
-            record['license'] = 'MIT'
+            record['license'] = 'CC0-1.0'
             credits.write_text(json.dumps(record))
             self.assertTrue(validate_photos(site))
 

@@ -39,9 +39,9 @@ def audit(root, paths):
     public_valid = not validate(root / 'site') if public_paths.intersection(paths) else False
     if public_paths.intersection(paths) and not public_valid:
         issues.append(('site/demo/artifacts.json', 'public MRI provenance/integrity check failed'))
-    stock_paths = {'site/' + name for name in PHOTOS}
-    stock_valid = not validate_photos(root / 'site') if stock_paths.intersection(paths) else False
-    if stock_paths.intersection(paths) and not stock_valid:
+    photo_paths = {'site/' + name for name in PHOTOS}
+    photo_valid = not validate_photos(root / 'site') if photo_paths.intersection(paths) else False
+    if photo_paths.intersection(paths) and not photo_valid:
         issues.append(('site/assets/photo-credits.json', 'website photo provenance/integrity check failed'))
     for name in paths:
         relative = PurePosixPath(name)
@@ -69,7 +69,7 @@ def audit(root, paths):
         if re.search(rb'"data_gzip_base64"\s*:', blob):
             if name != 'site/assets/hero-volume.json' or not public_valid:
                 issues.append((name, 'unapproved header imaging volume'))
-        approved_raster = (name in public_paths and public_valid) or (name in stock_paths and stock_valid)
+        approved_raster = (name in public_paths and public_valid) or (name in photo_paths and photo_valid)
         if name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')) and not approved_raster:
             issues.append((name, 'unapproved raster image; use reviewed public derivatives or licensed website photos'))
     return issues

@@ -23,8 +23,8 @@ python3 scripts/export_public_release.py --output dist/public-release
 
 `release_audit.py` examines tracked paths and content for known data/config/model/credential patterns,
 with values withheld from findings. It permits only the narrowly allowlisted CC0 demo derivatives when their pinned source record and
-artifact hashes validate. The two reviewed Unsplash website photos have their own pinned source/license
-records and hashes. Labels alone cannot authorize a scan or photograph. This guard is
+artifact hashes validate. The two reviewed AI-generated clinical illustrations have their own pinned
+generation, composition-reference and license records and hashes. Labels alone cannot authorize a scan or photograph. This guard is
 not a guarantee of anonymization or comprehensive secret detection; inspect newly added files.
 `export_public_release.py` requires a clean committed tree, exports only tracked audited files, and
 writes a SHA-256 manifest and `mri-preread-source.zip`. No `.git`, ignored file or private history is copied.
