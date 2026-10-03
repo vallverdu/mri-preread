@@ -63,7 +63,7 @@ async function decode(data) {
   return voxels;
 }
 
-function renderer(canvas, data, voxels, core, onError) {
+function renderer(canvas, data, voxels, core, onError, startState) {
   const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'low-power' });
   if (!gl) throw Error('WebGL2 unavailable');
   if (Math.max(...data.dims) > gl.getParameter(gl.MAX_3D_TEXTURE_SIZE)) throw Error('MRI texture unsupported');
@@ -113,7 +113,7 @@ function renderer(canvas, data, voxels, core, onError) {
     gl.uniform3fv(U.uVox, data.dims.map(n => 1 / n)); gl.uniform3fv(U.uVox2, data.dims.map(n => 1 / n));
     gl.uniform1f(U.uIso, .14); gl.uniform1f(U.uLo, .22); gl.uniform1f(U.uHi, .75); gl.uniform1f(U.uOp, .35); gl.uniform1i(U.uCmap, 1);
     gl.uniform1f(U.uLev, data.window[0]); gl.uniform1f(U.uWid, data.window[1]);
-    let state = initialState();
+    let state = startState;
     function draw() {
       pending = null;
       if (destroyed || !visible || root.document.hidden || !canvas.clientWidth || gl.isContextLost()) return;
@@ -214,7 +214,7 @@ function mount(figure) {
       const [core, { data, voxels }] = await Promise.all([loadCore(), loadData()]);
       if (ended || run !== generation) return;
       canvas.hidden = false;
-      engine = renderer(canvas, data, voxels, core, () => poster('MRI image preview · 3D is unavailable'));
+      engine = renderer(canvas, data, voxels, core, () => poster('MRI image preview · 3D is unavailable'), state);
       controls.hidden = false; controls.disabled = false;
       figure.classList.add('is-ready');
       status.textContent = 'Scroll over the head to move front to back · Drag to rotate';
@@ -259,7 +259,8 @@ function mount(figure) {
     } else { state = rotate(state, e.key === 'ArrowRight' ? 12 : -12, 0); engine.setState(state, true); }
   });
   slider.addEventListener('input', () => {
-    pause(); state.cuts[1] = Number(slider.value); updateControls(); engine?.setState(state, true);
+    const cut = Number(slider.value);
+    pause(); state.cuts[1] = cut; updateControls(); engine?.setState(state, true);
   });
   function zoom(factor) { state.dist = clamp(state.dist * factor, .9, 3.5); engine?.setState(state, true); }
   function reset() { pause(); state = initialState(); direction = 1; updateControls(); engine?.setState(state); }
