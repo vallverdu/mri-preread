@@ -26,21 +26,26 @@ Google MedGemma weights have separate [Health AI Developer Foundations terms](ht
 The application MIT license does not relicense those weights, including community conversions.
 Review the chosen model and runtime's terms before deployment.
 
-## Website clinical illustrations
+## Website clinical images
 
-The tablet and consultation-room images are generated illustrations of fictional clinicians,
-created with OpenAI's built-in image_gen tool on 3 October 2026 and distributed under MIT.
-They use the approved public viewer capture as a screen reference; no private MRI was supplied.
-They do not document a real deployment, represent clinical evidence, or imply endorsement.
+The original tablet photograph, `site/assets/tablet-review.jpg`, is by
+[Vitaly Gariev](https://unsplash.com/@silverkblack):
+[doctor showing a brain scan on a tablet](https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM).
+It uses the separate [Unsplash License](https://unsplash.com/license), verified on 2 October 2026.
+It illustrates a clinical setting; it does not depict the application or imply endorsement.
 
-Composition references were previously reviewed photographs under the
-[Unsplash License](https://unsplash.com/license), verified on 2 October 2026:
-[Accuray's workstation scene](https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A)
-and [Vitaly Gariev's tablet scene](https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM).
-The original photos are not shipped in the current website; their source records and original
-hashes are retained in [photo-credits.json](site/assets/photo-credits.json). Their historical
-versions retain the original Unsplash license.
+The consultation-room image, `site/assets/clinical-review.jpg`, is an AI-generated illustration
+of fictional clinicians, created with OpenAI's built-in image_gen tool on 3 October 2026 and
+distributed under MIT. It uses the approved public viewer capture as a screen reference;
+no private MRI was supplied. It does not document a real deployment or represent clinical evidence.
 
-See [generation prompts and reproduction](docs/website-photos.md) and the
+Its composition reference was
+[Accuray's workstation photograph](https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A)
+under the Unsplash License, verified on 2 October 2026. That original is not shipped in the
+current website; its source record and original hash are retained in
+[photo-credits.json](site/assets/photo-credits.json). Its historical versions retain the
+original Unsplash license.
+
+See [image sources and the consultation prompt](docs/website-photos.md) and the
 [website license file](site/license.txt). Actual feature screenshots and their close-up SVG
 derivatives retain the CC0 MRI provenance above; their anatomy was not generated.

@@ -10,9 +10,13 @@ the original screenshot hashes before framing them, embeds those exact JPEG byte
 the derivative hashes in `site/demo/artifacts.json`. These self-contained SVGs work without
 JavaScript and keep details visible in the two-column and mobile layouts.
 
-The tablet and consultation-room images are **AI-generated illustrations**, created on 3 October
-2026 with the built-in OpenAI image_gen tool. The people and settings are fictional. The actual
-public viewer capture supplied the screen reference. These images do not document clinical use,
+The tablet image is the original reviewed Unsplash photograph by Vitaly Gariev, restored
+unchanged on 3 October 2026. It illustrates a clinician holding an MRI tablet; it does not
+depict this application or imply endorsement.
+
+The consultation-room image is an **AI-generated illustration**, created on 3 October 2026
+with the built-in OpenAI image_gen tool. Its people and setting are fictional. The actual
+public viewer capture supplied the screen reference. It does not document clinical use,
 represent a customer endorsement, or provide medical evidence. No private MRI was supplied.
 
 Final assets:
@@ -20,38 +24,24 @@ Final assets:
 - `site/assets/clinical-review.jpg` — 1536 × 1024.
 - `site/assets/feature-{views,measures,notes,masks}-detail.svg` — 1024 × 640.
 
-Optimized JPEGs are served locally, with explicit dimensions and lazy loading. Generated PNG
-masters are preserved outside the source release. The previous Unsplash originals stay in their
-historical commits with the original notices; current pages and packages use the generated
-replacements. The [website license](../site/license.txt) and [generation/checksum record](../site/assets/photo-credits.json)
-provide provenance without credits over the images.
+Optimized JPEGs are served locally, with explicit dimensions and lazy loading. The generated
+consultation PNG master is preserved outside the source release. The tablet uses its original
+Unsplash license; the AI-generated consultation image uses MIT. The real MRI derivatives retain
+their CC0 source dedication. The [website license](../site/license.txt) and
+[source/generation/checksum record](../site/assets/photo-credits.json) provide provenance without
+credits over the images.
 
-Composition references were the previously reviewed free-license photographs by
-[Accuray](https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A)
-and [Vitaly Gariev](https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM).
-Their original hashes, URLs and separate Unsplash license are retained in the record.
-The new illustrations are distributed under the repository's MIT License; the real MRI derivatives
-retain their CC0 source dedication.
+The consultation composition reference was the previously reviewed free-license photograph by
+[Accuray](https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A).
+The current tablet photograph is by
+[Vitaly Gariev](https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM).
+Their source hashes, URLs and separate Unsplash license are retained in the record.
 
-The release audit pins image bytes and generation records independently. Replacing an illustration
+The release audit pins image bytes and generation records independently. Replacing an image
 requires inspection, updated hashes and provenance in `scripts/site_photos.py`, and site/release checks.
 Do not widen the MRI approval rules to include photographs or alter the original scan screenshots.
 
-## Final generation prompts
-
-### Tablet scene
-
-```text
-Use case: photorealistic-natural.
-Asset type: landscape website illustration, 16:9 composition.
-Input images: Image 1 is a composition and lighting reference ONLY, not an edit target and not a person to reproduce. Image 2 is the actual mri-preread application screenshot, a supporting screen insert.
-Primary request: Create a new, highly realistic candid photograph of a clinician holding a tablet toward a patient, closely following the camera angle and calm natural style of Image 1, but with the actual viewer from Image 2 on the tablet display.
-Scene: ordinary hospital consultation room, pale walls, practical shelves and a desk softly out of focus, everyday worn materials, no luxury décor.
-Subject: cropped clinician torso in a plain white coat, natural hands holding a dark tablet, one index finger gesturing toward a linked MRI slice without covering the viewer. Keep face outside the frame. Tablet occupies much of the lower half, held at an angle that makes the screen legible.
-Screen: faithfully place Image 2 within the tablet screen in correct perspective; retain the dark MRI workspace, brain reconstruction, linked axial/coronal/sagittal MRI slices and modest controls. Screen is the product, not decorative generic medical UI. Do not invent anatomy or make the scan a hologram.
-Lighting: soft ordinary window light, modest screen reflections while keeping the viewer recognizable, realistic skin, fabric and fingerprints.
-Constraints: new fictional clinician; no copied identity, no fashion styling, no dramatic cinematic glow, no floating UI, no brand logo, no watermarks, no promotional text. Anatomically natural hands and plausible tablet geometry. Photograph only, not a collage or website layout.
-```
+## Consultation generation prompt
 
 ### Clinical consultation
 

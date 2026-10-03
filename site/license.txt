@@ -24,22 +24,32 @@ viewer screenshots and close-up framing of unchanged screenshots. Notes, measure
 not expert lesion labels or AI findings. Dataset-author endorsement is not implied.
 Source and derivative checksums: demo/source-record.json and demo/artifacts.json.
 
-AI-generated clinical illustrations
------------------------------------
-Files: assets/clinical-review.jpg and assets/tablet-review.jpg.
-Created 3 October 2026 with OpenAI's built-in image_gen tool; distributed under
-the repository's MIT License. These depict fictional clinicians and settings,
-not actual customers, hospital deployments or endorsements. The public viewer
-screenshot supplied the screen reference. No private MRI was supplied.
-Generation prompts, reference hashes and output hashes: assets/photo-credits.json.
-
-Composition reference photographs (originals are not in the current website):
+Tablet photograph
+-----------------
+File: assets/tablet-review.jpg.
+The original Vitaly Gariev photograph, restored without changes.
 Unsplash License: https://unsplash.com/license (reviewed 2 October 2026).
+Photographer: Vitaly Gariev, https://unsplash.com/@silverkblack
+Source: https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM
+CDN resize to 1600 pixels wide and JPEG compression; responsive CSS crop.
+Illustrative stock photography; it does not depict this application or endorse it.
+Its license remains separate from the application MIT license.
+Exact source record and checksum: assets/photo-credits.json.
+
+AI-generated consultation illustration
+--------------------------------------
+File: assets/clinical-review.jpg.
+Created 3 October 2026 with OpenAI's built-in image_gen tool; distributed under
+the repository's MIT License. The clinicians and setting are fictional.
+This does not document actual customers, hospital deployments or endorsements.
+The public viewer screenshot supplied the screen reference. No private MRI was supplied.
+Generation prompt, reference hashes and output hash: assets/photo-credits.json.
+
+Composition reference (original not included in the current website):
 Accuray: https://unsplash.com/@accuray
 https://unsplash.com/photos/medical-professionals-reviewing-brain-scan-5VkNa1LrS8A
-Vitaly Gariev: https://unsplash.com/@silverkblack
-https://unsplash.com/photos/doctor-shows-brain-scan-on-tablet-in-office-8Ls2cnZwAaM
-Their original licenses remain separate from the application MIT license.
+Unsplash License: https://unsplash.com/license (reviewed 2 October 2026).
+The reference's original license remains separate from the application MIT license.
 
 Owner-approved header
 ---------------------

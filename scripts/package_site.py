@@ -67,7 +67,8 @@ def package(output, header_image=None, hero_volume=None):
     manifest = {'private_patient_data_included': header_bytes is not None,
                 'raw_patient_data_included': False, 'model_weights_included': False,
                 'private_display_volume_included': volume_bytes is not None,
-                'public_research_data_included': True, 'stock_photography_included': False,
+                'public_research_data_included': True, 'stock_photography_included': True,
+                'stock_photo_license': 'https://unsplash.com/license',
                 'ai_generated_illustrations_included': True,
                 'illustration_record': 'assets/photo-credits.json',
                 'public_dataset': DATASET, 'public_subject': SUBJECT, 'files': {}}
