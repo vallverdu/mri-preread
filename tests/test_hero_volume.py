@@ -72,7 +72,24 @@ class HeroVolumeTests(unittest.TestCase):
 
     def test_public_header_is_the_reviewed_simplified_reference_from_the_public_viewer(self):
         site = Path(__file__).resolve().parents[1] / 'site'
-        self.assertEqual(json.loads((site / 'assets/hero-volume.json').read_text()), export(site / 'demo/index.html'))
+        published = json.loads((site / 'assets/hero-volume.json').read_text())
+        rebuilt = export(site / 'demo/index.html')
+        # Gzip headers and compression output can vary across Python/zlib platforms.
+        # The provenance check concerns the exact voxels and physical/rendering metadata.
+        self.assertEqual(validate_payload(published), validate_payload(rebuilt))
+        self.assertEqual({k: v for k, v in published.items() if k != 'data_gzip_base64'},
+                         {k: v for k, v in rebuilt.items() if k != 'data_gzip_base64'})
+
+    def test_gzip_platform_header_does_not_change_validated_voxels(self):
+        with tempfile.TemporaryDirectory() as directory:
+            viewer, _ = self.viewer(Path(directory))
+            payload = export(viewer)
+            compressed = bytearray(base64.b64decode(payload['data_gzip_base64']))
+            # The gzip OS field does not describe image geometry or voxel content.
+            for os_byte in (3, 255):
+                compressed[9] = os_byte
+                variant = {**payload, 'data_gzip_base64': base64.b64encode(compressed).decode()}
+                self.assertEqual(validate_payload(variant), validate_payload(payload))
 
 
 if __name__ == '__main__':
