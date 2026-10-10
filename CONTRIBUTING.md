@@ -27,6 +27,11 @@ Never substitute a private scan or assume an openly downloadable dataset permits
 
 ## Make a change
 
+Use the root [TODO.md](TODO.md) to select work and record progress. It uses the GitHub checkbox
+format read by project-manager. Keep task IDs and wording stable when ticking a completed task,
+add concrete follow-ups for unfinished work, and cite the task ID and verification in the commit
+or pull request. A checked implementation task does not establish clinical validation.
+
 Keep clinician notes, algorithmic candidates and AI outputs distinguishable. Do not let model output
 set clinical urgency. Changes to preprocessing, windows, prompts, model revisions or quantization need
 new evaluation outputs; preserve earlier frozen predictions and reports. Use a small synthetic regression
