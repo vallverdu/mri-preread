@@ -50,7 +50,7 @@ and [image records](docs/website-photos.md). Header assets use separate owner pe
 
 ## Next — documentation, evaluation and model runtimes
 
-- [ ] MRI-020: Replace outdated publication wording and repository URL placeholders in the hospital integration guide with the published clone instructions.
+- [x] MRI-020: Replace outdated publication wording and repository URL placeholders in the hospital integration guide with the published clone instructions.
 - [ ] MRI-021: Define the next brain-lesion evaluation protocol with expert references, held-out studies, negative cases and agreed detection/localization metrics before tuning.
 - [ ] MRI-022: Compare decision scoring and prompts against the all-positive MedGemma baseline, freezing each run and reporting false flags, missed findings and invalid responses.
 - [ ] MRI-023: Evaluate adjacent-plane and multi-sequence evidence with spatial localization and explicit coverage limits, including small lesions between sampled planes.
@@ -81,6 +81,25 @@ Existing local browser drafts and the serial watcher are not a shared hospital r
 - [ ] MRI-036: Add enhanced multi-frame MRI ingestion with verified per-frame patient geometry and completeness checks.
 - [ ] MRI-037: Define and evaluate a pipeline for one additional anatomical region before extending the brain-specific asymmetry claims.
 - [ ] MRI-038: Evaluate condition-specific urgency in shadow mode with independent expert labels and measured waiting-time benefits and delays before considering queue changes.
+
+## Outreach — preparation and institutional pilots
+
+- [x] MRI-039: Document a worldwide hospital and imaging-center outreach plan with audience, pilot proposal, sender options and contact tracking.
+- [x] MRI-040: Prepare a private register of official hospital and imaging-center contacts with source evidence, route quality and regional coverage.
+- [x] MRI-041: Prepare private personalized HTML and plain-text outreach drafts using the maintainer's email templates and accurate viewer and model capabilities.
+- [ ] MRI-042: Finalize the sender signature and postal address, review contact eligibility and approve the first five institutional approaches.
+- [ ] MRI-043: Connect and test the chosen monitored sender using Gmail or a verified SES domain with reply and suppression handling.
+- [ ] MRI-044: Complete the first approved outreach cohort and log actual sends, responses, opt-outs and introductions in the private register.
+- [ ] MRI-045: Agree pilot scope, clinical and IT owners, institutional samples and acceptance criteria with interested imaging teams.
+- [ ] MRI-046: Run the agreed viewer pilots and record verification, workflow feedback, performance, issues and the institutional deployment decision.
+- [x] MRI-047: Add a private interactive world map with country and stage filters, localized draft links, browser progress tracking and JSON export/import that preserves opt-outs.
+- [x] MRI-048: Prepare complete country-specific introductions and detailed proposals with recipient-language choices, local alternatives and right-to-left layout where required.
+- [ ] MRI-049: Confirm recipient language preferences and obtain native-speaking clinical and technical review of the translated outreach drafts before sending.
+
+See the [outreach plan](docs/outreach-plan.md). Prospect addresses, correspondence and adapted licensed
+email templates remain private. Completed preparation does not mean a message was sent or a pilot agreed.
+The initial private package covers 26 organizations in 15 countries with 12 draft languages.
+Published email evidence and route quality are recorded; mailbox delivery and permission remain unverified.
 
 ## Maintaining this list
 

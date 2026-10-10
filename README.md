@@ -53,6 +53,7 @@ but other anatomy requires a separately implemented and evaluated pipeline.
 ## Guide
 
 - [Project tasks and completed milestones](TODO.md)
+- [Hospital and imaging-center outreach plan](docs/outreach-plan.md)
 - [Install and prepare the local model](#install)
 - [From a scan to a viewable AI report](#from-a-scan-to-a-viewable-ai-report)
 - [Viewer controls](#viewer)

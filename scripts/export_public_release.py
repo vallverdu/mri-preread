@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import zipfile
 
-from release_audit import ROOT, audit, source_paths
+from release_audit import ROOT, PROJECT_COVER_FILES, audit, source_paths
 
 
 def main():
@@ -24,6 +24,8 @@ def main():
     if issues:
         for path, reason in issues: print(f'{path}: {reason}')
         raise SystemExit('Release audit failed')
+    # The owner-published management thumbnail is not application source or MIT imagery.
+    paths = [name for name in paths if name not in PROJECT_COVER_FILES]
     # Export only a clean committed state, including approved CC0 public MRI derivatives.
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT).strip():
         raise SystemExit('Commit or isolate current changes before exporting a release')

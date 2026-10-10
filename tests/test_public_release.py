@@ -10,12 +10,40 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from release_audit import audit
+from release_audit import audit, PROJECT_COVER_FILES, validate_project_cover
 from public_demo import ARTIFACTS, COMMIT, DATASET, INPUT_SHA256, MARKER, SUBJECT, validate
 from site_photos import FILES as PHOTO_FILES, validate as validate_photos
 
 
 class PublicReleaseTests(unittest.TestCase):
+    def test_project_cover_requires_both_pinned_image_and_unchanged_permission_record(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = Path(__file__).resolve().parents[1]
+            for name in PROJECT_COVER_FILES:
+                dest = root / name
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source / name, dest)
+            self.assertTrue(validate_project_cover(root))
+            self.assertEqual(audit(root, list(PROJECT_COVER_FILES)), [])
+            self.assertTrue(audit(root, ['.pm/cover.jpg']))
+            image = root / '.pm/cover.jpg'
+            record = root / '.pm/cover.json'
+            original = image.read_bytes()
+            image.write_bytes(b'unreviewed replacement')
+            self.assertTrue(audit(root, list(PROJECT_COVER_FILES)))
+            metadata = json.loads(record.read_text())
+            metadata['sha256'] = hashlib.sha256(image.read_bytes()).hexdigest()
+            record.write_text(json.dumps(metadata))
+            self.assertFalse(validate_project_cover(root))
+            image.write_bytes(original)
+            metadata = json.loads((source / '.pm/cover.json').read_text())
+            metadata['license'] = 'MIT'
+            record.write_text(json.dumps(metadata))
+            self.assertFalse(validate_project_cover(root))
+            record.unlink()
+            self.assertFalse(validate_project_cover(root))
+
     def photo_fixture(self, root):
         source = Path(__file__).resolve().parents[1] / 'site'
         for name in PHOTO_FILES:

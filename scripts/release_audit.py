@@ -3,6 +3,8 @@
 This is a release guard, not a proof of anonymization. Never scans ignored study directories.
 """
 import argparse
+import hashlib
+import json
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
@@ -22,6 +24,32 @@ SECRET_PATTERNS = [
 ]
 PERSONAL_PATH = re.compile(rb'/Users/[A-Za-z0-9_.-]+/')
 DATED_STUDY = re.compile(rb'data/\d{4}-\d{2}-\d{2}_brain')
+PROJECT_COVER_FILES = {'.pm/cover.jpg', '.pm/cover.json'}
+PROJECT_COVER = {
+    'file': '.pm/cover.jpg',
+    'sha256': '5f00ec0da703ccd28d384a5d76376632f7cf8a7f49f211c11d3cde77293d6054',
+    'type': 'website screenshot',
+    'source_url': 'https://vallverdu.github.io/mri-preread/',
+    'publication_commit': '2fdbcd0ca52a8ca3152c1120f7fe40bf28ddb39c',
+    'owner': 'Jordi Vallverdu',
+    'license': 'Owner-published project-manager cover; separate from MIT and CC0. No general redistribution license.',
+    'owner_display_derivative_included': True,
+    'raw_scan_data_included': False,
+    'source_zip_included': False,
+}
+
+
+def validate_project_cover(root):
+    """Accept only the existing owner-published website screenshot and its exact record."""
+    image = root / '.pm/cover.jpg'
+    record = root / '.pm/cover.json'
+    if image.is_symlink() or record.is_symlink() or not image.is_file() or not record.is_file():
+        return False
+    try:
+        return (hashlib.sha256(image.read_bytes()).hexdigest() == PROJECT_COVER['sha256']
+                and json.loads(record.read_text()) == PROJECT_COVER)
+    except (OSError, ValueError):
+        return False
 
 
 def source_paths(root=ROOT, include_untracked=False):
@@ -35,6 +63,9 @@ def source_paths(root=ROOT, include_untracked=False):
 
 def audit(root, paths):
     issues = []
+    cover_valid = (PROJECT_COVER_FILES.issubset(set(paths)) and validate_project_cover(root))
+    if PROJECT_COVER_FILES.intersection(paths) and not cover_valid:
+        issues.append(('.pm/cover.json', 'project cover provenance/integrity check failed'))
     public_paths = {'site/' + name for name in ARTIFACTS}
     public_valid = not validate(root / 'site') if public_paths.intersection(paths) else False
     if public_paths.intersection(paths) and not public_valid:
@@ -69,7 +100,8 @@ def audit(root, paths):
         if re.search(rb'"data_gzip_base64"\s*:', blob):
             if name != 'site/assets/hero-volume.json' or not public_valid:
                 issues.append((name, 'unapproved header imaging volume'))
-        approved_raster = (name in public_paths and public_valid) or (name in photo_paths and photo_valid)
+        approved_raster = ((name in public_paths and public_valid) or (name in photo_paths and photo_valid)
+                           or (name == '.pm/cover.jpg' and cover_valid))
         if name.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')) and not approved_raster:
             issues.append((name, 'unapproved raster image; use reviewed public derivatives or licensed website photos'))
     return issues

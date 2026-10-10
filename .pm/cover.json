@@ -1,0 +1,12 @@
+{
+  "file": ".pm/cover.jpg",
+  "sha256": "5f00ec0da703ccd28d384a5d76376632f7cf8a7f49f211c11d3cde77293d6054",
+  "type": "website screenshot",
+  "source_url": "https://vallverdu.github.io/mri-preread/",
+  "publication_commit": "2fdbcd0ca52a8ca3152c1120f7fe40bf28ddb39c",
+  "owner": "Jordi Vallverdu",
+  "license": "Owner-published project-manager cover; separate from MIT and CC0. No general redistribution license.",
+  "owner_display_derivative_included": true,
+  "raw_scan_data_included": false,
+  "source_zip_included": false
+}

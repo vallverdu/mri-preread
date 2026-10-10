@@ -26,6 +26,12 @@ with values withheld from findings. It permits only the narrowly allowlisted CC0
 artifact hashes validate. The reviewed tablet photograph and AI consultation illustration have their
 own pinned source, generation and license records and hashes. Labels alone cannot authorize a scan or photograph. This guard is
 not a guarantee of anonymization or comprehensive secret detection; inspect newly added files.
+The project-manager cover at `.pm/cover.jpg` was published by the owner as a screenshot of the
+existing website. Its exact bytes and separate permission record are pinned in `.pm/cover.json`
+and the audit. It contains the owner-approved display derivative, not raw study data; it is not
+MIT or CC0 imagery. Replacing the image or changing the record requires a new review. Both cover
+files are excluded from the downloadable source ZIP; their presence in project metadata does
+not authorize other private images or volumes in source.
 `export_public_release.py` requires a clean committed tree, exports only tracked audited files, and
 writes a SHA-256 manifest and `mri-preread-source.zip`. No `.git`, ignored file or private history is copied.
 Existing output directories are refused; use a new release directory for later snapshots.

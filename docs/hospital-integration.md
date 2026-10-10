@@ -33,12 +33,11 @@ inference needs an adapter and independent evaluation. See [model runtimes and h
 
 ## 1. Obtain and install the source
 
-After the maintainer publishes the audited source, clone its public URL. Until that URL is assigned,
-the [source release procedure](public-release.md) produces a local ZIP with the same source.
+Clone the [published MIT source](https://github.com/vallverdu/mri-preread). The
+[source release procedure](public-release.md) also produces an audited source ZIP.
 
 ```bash
-# Replace REPOSITORY_URL with the actual published repository URL.
-git clone REPOSITORY_URL mri-preread
+git clone https://github.com/vallverdu/mri-preread.git mri-preread
 cd mri-preread
 python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dicom-compressed]"
